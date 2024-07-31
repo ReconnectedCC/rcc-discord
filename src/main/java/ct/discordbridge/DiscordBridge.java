@@ -115,7 +115,7 @@ public class DiscordBridge implements ModInitializer {
 
         ServerMessageEvents.CHAT_MESSAGE.register((message, sender, params) -> {
             var playerName = sender.getDisplayName().getString();
-            var avatarUrl = Utils.getAvatarThumbnailUrl(sender);
+            var avatarUrl = Utils.getAvatarUrl(sender);
             client.webhook().execute()
                     .withAvatarUrl(avatarUrl)
                     .withUsername(playerName)
