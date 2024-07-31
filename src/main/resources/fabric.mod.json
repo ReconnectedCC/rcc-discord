@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "discordbridge",
+  "version": "${version}",
+  "name": "Discord Bridge",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/discordbridge/icon.png",
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "ct.discordbridge.DiscordBridge"
+    ]
+  },
+  "mixins": [
+    "discordbridge.mixins.json",
+    {
+      "config": "discordbridge.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
