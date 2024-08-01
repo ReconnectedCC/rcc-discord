@@ -27,10 +27,20 @@ public class DiscordBridge implements ModInitializer {
     public static final String MOD_ID = "ct-discord";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
+    private static DiscordBridge INSTANCE;
+
     public static final DiscordConfig CONFIG = DiscordConfig.createAndLoad();
     private DiscordClient client;
 
     private static final Queue<Component> chatQueue = new ConcurrentLinkedQueue<>();
+
+    public DiscordBridge() {
+        INSTANCE = this;
+    }
+
+    public static DiscordBridge getInstance() {
+        return INSTANCE;
+    }
 
     @Override
     public void onInitialize() {
