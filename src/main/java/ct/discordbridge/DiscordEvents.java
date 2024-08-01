@@ -63,7 +63,7 @@ public class DiscordEvents {
             memberColor = nullableMemberColor.getRGB();
         }
         var memberComponent = ChatComponents.makeUser(member.getDisplayName(), member.getMention() + ": ", memberColor, Component.empty());
-        Component messageHeaderComponent;
+        Component replyComponent = null;
 
         if (message.getType() == Message.Type.REPLY && message.getReferencedMessage().isPresent()) {
             var referencedMessage = message.getReferencedMessage().get();
@@ -85,9 +85,7 @@ public class DiscordEvents {
                 referenceMemberComponent = ChatComponents.makeUser(referenceAuthor.username(), referenceAuthor.username() + ": ", NamedTextColor.WHITE.value(), Component.empty());
             }
 
-            messageHeaderComponent = ChatComponents.makeReplyHeader(memberComponent, referenceMemberComponent, Component.text(referencedMessage.getContent()));
-        } else {
-            messageHeaderComponent = memberComponent;
+            replyComponent = ChatComponents.makeReplyHeader(referenceMemberComponent, Component.text(referencedMessage.getContent()));
         }
 
         var messageContent = message.getContent();
@@ -180,7 +178,7 @@ public class DiscordEvents {
             messageComponent = messageComponent.append(ChatComponents.makeAttachment(attachment.getFilename(), attachment.getUrl()));
         }
 
-        var outputComponent = ChatComponents.makeMessage(messageHeaderComponent, messageComponent);
+        var outputComponent = ChatComponents.makeMessage(memberComponent, replyComponent, messageComponent);
 
         DiscordBridge.enqueueMessage(outputComponent);
     }

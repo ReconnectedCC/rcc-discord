@@ -17,7 +17,7 @@ public class DiscordClient {
     private GatewayDiscordClient client;
     private DiscordEvents events;
 
-    public DiscordClient() throws InterruptedException {
+    public DiscordClient() throws Exception {
         initialize();
     }
 

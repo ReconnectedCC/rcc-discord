@@ -5,14 +5,12 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.jetbrains.annotations.Nullable;
 
 public class ChatComponents {
-    public static final Component discordMessagePrefix = Component
-            .text("D")
-            .color(TextColor.color(Colors.BLURPLE))
-            .hoverEvent(HoverEvent.showText(Component.text("Message from the Discord server")))
-            .clickEvent(ClickEvent.openUrl(DiscordBridge.CONFIG.inviteLink()));
+    public static Component discordMessagePrefix = MiniMessage.miniMessage().deserialize(DiscordBridge.CONFIG.prefix());
 
     public static final Component mentionIcon = Component
             .text("@")
@@ -36,31 +34,23 @@ public class ChatComponents {
         return comp;
     }
 
-    public static Component makeMessageHeader(Component content) {
-        return Component.empty()
-                .append(Component.text("<"))
-                .append(content)
-                .append(Component.text(">"));
+    public static Component makeReplyHeader(Component referenceUser, Component referenceMessage) {
+        return MiniMessage.miniMessage().deserialize(DiscordBridge.CONFIG.reply(),
+                Placeholder.component("reference_username", referenceUser),
+                Placeholder.component("reference_message", referenceMessage)
+        );
     }
 
-    public static Component makeReplyHeader(Component user, Component referenceUser, Component referenceMessage) {
-        return Component.empty()
-                .append(user)
-                .append(Component
-                        .text(" replied to ")
-                        .color(NamedTextColor.GRAY)
-                        .hoverEvent(HoverEvent.showText(Component.text("Message: ").append(referenceMessage)))
-                )
-                .append(referenceUser);
-    }
-
-    public static Component makeMessage(Component headerContent, Component message) {
-        return Component.empty()
-                .append(discordMessagePrefix)
-                .appendSpace()
-                .append(makeMessageHeader(headerContent))
-                .appendSpace()
-                .append(message);
+    public static Component makeMessage(Component username, @Nullable Component reply, Component message) {
+        if (reply == null)
+            reply = Component.empty();
+        return MiniMessage.miniMessage().deserialize(DiscordBridge.CONFIG.messageFormat(),
+                Placeholder.component("prefix", discordMessagePrefix),
+                Placeholder.component("username", username),
+                Placeholder.component("reply", reply),
+                Placeholder.component("message", message)
+        );
+        //return Component.empty();
     }
 
     public static Component makeAttachment(String fileName, String url) {

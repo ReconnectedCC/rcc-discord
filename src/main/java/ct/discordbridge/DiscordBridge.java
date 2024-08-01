@@ -12,6 +12,7 @@ import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +38,7 @@ public class DiscordBridge implements ModInitializer {
 
         try {
             this.client = new DiscordClient();
-        } catch (InterruptedException e) {
+        } catch (Exception e) {
             LOGGER.error("Error creating Discord client", e);
             return;
         }
@@ -45,6 +46,9 @@ public class DiscordBridge implements ModInitializer {
         ServerTickEvents.START_SERVER_TICK.register(server -> {
             while(!chatQueue.isEmpty()) {
                 var message = chatQueue.poll();
+
+                LOGGER.info(PlainTextComponentSerializer.plainText().serialize(message));
+
                 var list = server.getPlayerManager().getPlayerList();
                 for(ServerPlayerEntity player : list) {
                     player.sendMessage(message);
