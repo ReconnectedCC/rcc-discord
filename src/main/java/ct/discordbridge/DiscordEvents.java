@@ -1,5 +1,6 @@
 package ct.discordbridge;
 
+import ct.discordbridge.events.DiscordMessage;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
@@ -55,6 +56,8 @@ public class DiscordEvents {
         var member = event.getMember().get();
         if (member.isBot())
             return;
+
+        DiscordMessage.MESSAGE_CREATE.invoker().messageCreate(event);
 
         int memberColor = NamedTextColor.WHITE.value();
 
