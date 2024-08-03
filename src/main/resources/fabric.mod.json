@@ -11,7 +11,7 @@
   "environment": "server",
   "entrypoints": {
     "main": [
-      "ct.discordbridge.DiscordBridge"
+      "ct.discordbridge.Bridge"
     ]
   },
   "mixins": [

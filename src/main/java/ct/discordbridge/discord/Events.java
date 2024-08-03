@@ -1,5 +1,8 @@
-package ct.discordbridge;
+package ct.discordbridge.discord;
 
+import ct.discordbridge.Bridge;
+import ct.discordbridge.ChatComponents;
+import ct.discordbridge.Colors;
 import ct.discordbridge.events.DiscordMessage;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.message.MessageCreateEvent;
@@ -14,10 +17,10 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class DiscordEvents {
+public class Events {
     private static final Pattern mentionPattern = Pattern.compile("(<@[!&]?\\d+>|<#\\d+>)");
     private static final Pattern integerPattern = Pattern.compile("\\d+");
-    public DiscordEvents(DiscordClient client) {
+    public Events(Client client) {
         client.client().on(MessageCreateEvent.class).subscribe(this::onMessageCreate);
     }
 
@@ -47,7 +50,7 @@ public class DiscordEvents {
         if (channel == null)
             return;
 
-        if (!channel.getId().equals(Snowflake.of(DiscordBridge.CONFIG.channelId())))
+        if (!channel.getId().equals(Snowflake.of(Bridge.CONFIG.channelId())))
             return;
 
         if (event.getMember().isEmpty())
@@ -183,6 +186,6 @@ public class DiscordEvents {
 
         var outputComponent = ChatComponents.makeMessage(memberComponent, replyComponent, messageComponent);
 
-        DiscordBridge.enqueueMessage(outputComponent);
+        Bridge.enqueueMessage(outputComponent);
     }
 }

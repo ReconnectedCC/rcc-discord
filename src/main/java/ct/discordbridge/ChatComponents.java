@@ -10,7 +10,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.jetbrains.annotations.Nullable;
 
 public class ChatComponents {
-    public static Component discordMessagePrefix = MiniMessage.miniMessage().deserialize(DiscordBridge.CONFIG.prefix());
+    public static Component discordMessagePrefix = MiniMessage.miniMessage().deserialize(Bridge.CONFIG.prefix());
 
     public static final Component mentionIcon = Component
             .text("@")
@@ -35,7 +35,7 @@ public class ChatComponents {
     }
 
     public static Component makeReplyHeader(Component referenceUser, Component referenceMessage) {
-        return MiniMessage.miniMessage().deserialize(DiscordBridge.CONFIG.reply(),
+        return MiniMessage.miniMessage().deserialize(Bridge.CONFIG.reply(),
                 Placeholder.component("reference_username", referenceUser),
                 Placeholder.component("reference_message", referenceMessage)
         );
@@ -44,7 +44,7 @@ public class ChatComponents {
     public static Component makeMessage(Component username, @Nullable Component reply, Component message) {
         if (reply == null)
             reply = Component.empty();
-        return MiniMessage.miniMessage().deserialize(DiscordBridge.CONFIG.messageFormat(),
+        return MiniMessage.miniMessage().deserialize(Bridge.CONFIG.messageFormat(),
                 Placeholder.component("prefix", discordMessagePrefix),
                 Placeholder.component("username", username),
                 Placeholder.component("reply", reply),

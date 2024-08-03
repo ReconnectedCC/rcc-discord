@@ -1,5 +1,6 @@
 package ct.discordbridge;
 
+import ct.discordbridge.discord.Client;
 import discord4j.core.spec.EmbedCreateFields;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.rest.util.AllowedMentions;
@@ -16,30 +17,33 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ct.discordbridge.DiscordConfig;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 
-public class DiscordBridge implements ModInitializer {
+public class Bridge implements ModInitializer {
 
     public static final String MOD_ID = "ct-discord";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    private static DiscordBridge INSTANCE;
+    private static Bridge INSTANCE;
 
-    public static final DiscordConfig CONFIG = DiscordConfig.createAndLoad();
-    private DiscordClient client;
+    public static final ct.discordbridge.DiscordConfig CONFIG = ct.discordbridge.DiscordConfig.createAndLoad();
+    private Client client;
 
     private static final Queue<Component> chatQueue = new ConcurrentLinkedQueue<>();
 
-    public DiscordBridge() {
+    public Bridge() {
         INSTANCE = this;
     }
 
-    public static DiscordBridge getInstance() {
+    public static Bridge getInstance() {
         return INSTANCE;
+    }
+
+    public Client getClient() {
+        return client;
     }
 
     @Override
@@ -47,7 +51,7 @@ public class DiscordBridge implements ModInitializer {
         LOGGER.info("Initializing Discord Bridge");
 
         try {
-            this.client = new DiscordClient();
+            this.client = new Client();
         } catch (Exception e) {
             LOGGER.error("Error creating Discord client", e);
             return;

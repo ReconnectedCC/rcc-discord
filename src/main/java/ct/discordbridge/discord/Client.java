@@ -1,6 +1,7 @@
-package ct.discordbridge;
+package ct.discordbridge.discord;
 
 
+import ct.discordbridge.Bridge;
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClientBuilder;
 import discord4j.core.GatewayDiscordClient;
@@ -11,13 +12,13 @@ import discord4j.gateway.intent.Intent;
 import discord4j.gateway.intent.IntentSet;
 import reactor.core.publisher.Mono;
 
-public class DiscordClient {
+public class Client {
     private TextChannel chatChannel;
     private Webhook webhook;
     private GatewayDiscordClient client;
-    private DiscordEvents events;
+    private Events events;
 
-    public DiscordClient() throws Exception {
+    public Client() throws Exception {
         initialize();
     }
 
@@ -33,12 +34,12 @@ public class DiscordClient {
         return client;
     }
 
-    public DiscordEvents events() {
+    public Events events() {
         return events;
     }
 
     private void initialize() {
-        var clientMono = DiscordClientBuilder.create(DiscordBridge.CONFIG.token())
+        var clientMono = DiscordClientBuilder.create(Bridge.CONFIG.token())
                 .build()
                 .gateway()
                 .setEnabledIntents(IntentSet.of(
@@ -52,22 +53,22 @@ public class DiscordClient {
             client.on(ReadyEvent.class).subscribe(event -> {
                 this.client = client;
                 final var self = event.getSelf();
-                DiscordBridge.LOGGER.info("Logged in as {}", self.getTag());
+                Bridge.LOGGER.info("Logged in as {}", self.getTag());
 
-                chatChannel = (TextChannel) client.getChannelById(Snowflake.of(DiscordBridge.CONFIG.channelId())).block();
+                chatChannel = (TextChannel) client.getChannelById(Snowflake.of(Bridge.CONFIG.channelId())).block();
 
                 if(chatChannel == null){
-                    DiscordBridge.LOGGER.error("Channel not found! Set an existing channel ID that I can see!");
+                    Bridge.LOGGER.error("Channel not found! Set an existing channel ID that I can see!");
                     return;
                 }
 
-                var webhookName = DiscordBridge.CONFIG.name();
+                var webhookName = Bridge.CONFIG.name();
                 this.webhook = chatChannel.getWebhooks().filter(wh -> wh.getName().get().equals(webhookName)).singleOrEmpty().block();
                 if (this.webhook == null) {
                     this.webhook = chatChannel.createWebhook(webhookName).block();
                 }
 
-                events = new DiscordEvents(this);
+                events = new Events(this);
             });
             return Mono.empty();
         }).block();
