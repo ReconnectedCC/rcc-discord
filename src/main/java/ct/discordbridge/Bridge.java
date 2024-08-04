@@ -1,10 +1,14 @@
 package ct.discordbridge;
 
+import club.minnced.discord.webhook.receive.ReadonlyMessage;
+import club.minnced.discord.webhook.send.AllowedMentions;
+import club.minnced.discord.webhook.send.WebhookEmbed;
+import club.minnced.discord.webhook.send.WebhookEmbedBuilder;
+import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import ct.discordbridge.discord.Client;
-import discord4j.core.spec.EmbedCreateFields;
-import discord4j.core.spec.EmbedCreateSpec;
-import discord4j.rest.util.AllowedMentions;
-import discord4j.rest.util.Color;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.requests.restaction.WebhookMessageCreateAction;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -58,63 +62,38 @@ public class Bridge implements ModInitializer {
         }
 
         ServerTickEvents.START_SERVER_TICK.register(server -> {
-            while(!chatQueue.isEmpty()) {
+            while (!chatQueue.isEmpty()) {
                 var message = chatQueue.poll();
 
                 LOGGER.info(PlainTextComponentSerializer.plainText().serialize(message));
 
                 var list = server.getPlayerManager().getPlayerList();
-                for(ServerPlayerEntity player : list) {
+                for (ServerPlayerEntity player : list) {
                     player.sendMessage(message);
                 }
             }
         });
 
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
-            client.webhook().execute()
-                    .withEmbeds(EmbedCreateSpec.create()
-                            .withDescription(":hourglass: **Server is starting...**")
-                            .withColor(Color.of(NamedTextColor.YELLOW.value()))
-                    )
-                    .subscribe();
+            sendServerStatus(":hourglass: **Server is starting...**", NamedTextColor.YELLOW.value());
         });
 
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            client.webhook().execute()
-                    .withEmbeds(EmbedCreateSpec.create()
-                            .withDescription(":up: **Server started!**")
-                            .withColor(Color.of(NamedTextColor.GREEN.value()))
-                    )
-                    .subscribe();
+            sendServerStatus(":up: **Server started!**", NamedTextColor.GREEN.value());
         });
 
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
-            client.webhook().execute()
-                    .withEmbeds(EmbedCreateSpec.create()
-                            .withDescription(":electric_plug: **Server is stopping!**")
-                            .withColor(Color.of(NamedTextColor.RED.value()))
-                    )
-                    .subscribe();
+            sendServerStatus(":electric_plug: **Server is stopping!**", NamedTextColor.RED.value());
         });
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             var playerName = handler.player.getDisplayName().getString();
-
-            client.webhook().execute()
-                    .withEmbeds(EmbedCreateSpec.create()
-                            .withAuthor(EmbedCreateFields.Author.of(String.format("%s joined the server", playerName), null, Utils.getAvatarThumbnailUrl(handler.player)))
-                            .withColor(Color.of(NamedTextColor.GREEN.value())))
-                    .subscribe();
+            sendPlayerStatus(String.format("%s joined the server", playerName), NamedTextColor.GREEN.value(), Utils.getAvatarThumbnailUrl(handler.player));
         });
 
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             var playerName = handler.player.getDisplayName().getString();
-
-            client.webhook().execute()
-                    .withEmbeds(EmbedCreateSpec.create()
-                            .withAuthor(EmbedCreateFields.Author.of(String.format("%s left the server", playerName), null, Utils.getAvatarThumbnailUrl(handler.player)))
-                            .withColor(Color.of(NamedTextColor.RED.value())))
-                    .subscribe();
+            sendPlayerStatus(String.format("%s left the server", playerName), NamedTextColor.RED.value(), Utils.getAvatarThumbnailUrl(handler.player));
         });
 
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, damageSource) -> {
@@ -124,26 +103,48 @@ public class Bridge implements ModInitializer {
             var message = damageSource.getDeathMessage(entity).getString();
             var avatarUrl = Utils.getAvatarThumbnailUrl(player);
 
-            client.webhook().execute()
-                    .withEmbeds(EmbedCreateSpec.create()
-                            .withAuthor(EmbedCreateFields.Author.of(String.format("%s", message), null, avatarUrl))
-                            .withColor(Color.of(NamedTextColor.GRAY.value())))
-                    .subscribe();
+            sendPlayerStatus(message, NamedTextColor.GRAY.value(), avatarUrl);
         });
 
         ServerMessageEvents.CHAT_MESSAGE.register((message, sender, params) -> {
             var playerName = sender.getDisplayName().getString();
             var avatarUrl = Utils.getAvatarUrl(sender);
-            client.webhook().execute()
-                    .withAvatarUrl(avatarUrl)
-                    .withUsername(playerName)
-                    .withContent(message.getContent().getString())
-                    .withAllowedMentions(AllowedMentions.suppressEveryone())
-                    .subscribe();
+            sendPlayerMessage(message.message(), playerName, avatarUrl);
         });
     }
 
     public static void enqueueMessage(Component component) {
         chatQueue.offer(component);
+    }
+
+    public void sendServerStatus(String message, int color) {
+        var embed = new WebhookEmbedBuilder()
+                .setDescription(message)
+                .setColor(color)
+                .build();
+        client.webhookClient().send(embed);
+    }
+
+    public void sendPlayerStatus(String message, int color, String avatarUrl) {
+        var embed= new WebhookEmbedBuilder()
+                .setAuthor(new WebhookEmbed.EmbedAuthor(message, avatarUrl, null))
+                .setColor(color)
+                .build();
+        client.webhookClient().send(embed);
+    }
+
+    public void sendPlayerMessage(String message, String name, String avatarUrl) {
+        var webhookMessage = new WebhookMessageBuilder()
+                .setAvatarUrl(avatarUrl)
+                .setUsername(name)
+                .setContent(message)
+                .setAllowedMentions(
+                        new AllowedMentions()
+                                .withParseUsers(true)
+                                .withParseRoles(true)
+                                .withParseEveryone(false)
+                )
+                .build();
+        client.webhookClient().send(webhookMessage);
     }
 }

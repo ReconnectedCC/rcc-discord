@@ -4,11 +4,13 @@ import ct.discordbridge.Bridge;
 import ct.discordbridge.ChatComponents;
 import ct.discordbridge.Colors;
 import ct.discordbridge.events.DiscordMessage;
-import discord4j.common.util.Snowflake;
-import discord4j.core.event.domain.message.MessageCreateEvent;
-import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.channel.Channel;
-import discord4j.core.object.entity.channel.GuildChannel;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageType;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
@@ -20,9 +22,6 @@ import java.util.regex.Pattern;
 public class Events {
     private static final Pattern mentionPattern = Pattern.compile("(<@[!&]?\\d+>|<#\\d+>)");
     private static final Pattern integerPattern = Pattern.compile("\\d+");
-    public Events(Client client) {
-        client.client().on(MessageCreateEvent.class).subscribe(this::onMessageCreate);
-    }
 
     public static List<String> splitMessage(String message) {
         List<String> parts = new ArrayList<>();
@@ -44,84 +43,102 @@ public class Events {
         return parts;
     }
 
-    public void onMessageCreate(MessageCreateEvent event) {
+    public void onMessageCreate(MessageReceivedEvent event) {
         var message = event.getMessage();
-        var channel = message.getChannel().block();
-        if (channel == null)
+        var channel = message.getChannel();
+        if (!channel.getId().equals(Bridge.CONFIG.channelId()))
             return;
 
-        if (!channel.getId().equals(Snowflake.of(Bridge.CONFIG.channelId())))
+        var member = event.getMember();
+        if (member == null)
             return;
 
-        if (event.getMember().isEmpty())
+        if (member.getUser().isBot())
             return;
 
-        var member = event.getMember().get();
-        if (member.isBot())
+        buildMessage(message, member, false);
+    }
+
+    public void onMessageEdit(MessageUpdateEvent event) {
+        var message = event.getMessage();
+        var channel = message.getChannel();
+        if (!channel.getId().equals(Bridge.CONFIG.channelId()))
             return;
 
-        DiscordMessage.MESSAGE_CREATE.invoker().messageCreate(event);
+        var member = event.getMember();
+        if (member == null)
+            return;
+
+        if (member.getUser().isBot())
+            return;
+
+        buildMessage(message, member, true);
+    }
+
+    public void buildMessage(Message message, Member member, boolean isEdited) {
+        DiscordMessage.MESSAGE_CREATE.invoker().messageCreate(message, member, isEdited);
 
         int memberColor = NamedTextColor.WHITE.value();
 
-        var nullableMemberColor = member.getColor().block();
+        var nullableMemberColor = member.getColor();
         if (nullableMemberColor != null) {
             memberColor = nullableMemberColor.getRGB();
         }
-        var memberComponent = ChatComponents.makeUser(member.getDisplayName(), member.getMention() + ": ", memberColor, Component.empty());
+        var memberComponent = ChatComponents.makeUser(member.getEffectiveName(), member.getAsMention() + ": ", memberColor, Component.empty());
         Component replyComponent = null;
 
-        if (message.getType() == Message.Type.REPLY && message.getReferencedMessage().isPresent()) {
-            var referencedMessage = message.getReferencedMessage().get();
+        if (message.getType() == MessageType.INLINE_REPLY && message.getReferencedMessage() != null) {
+            var referencedMessage = message.getReferencedMessage();
             Component referenceMemberComponent;
-            var referenceMember = referencedMessage.getAuthorAsMember().block();
+            var referenceMember = referencedMessage.getMember();
             if (referenceMember != null) {
                 var referenceMemberColor = NamedTextColor.WHITE.value();
-                var nullableReferenceMemberColor = member.getColor().block();
+                var nullableReferenceMemberColor = member.getColor();
                 if (nullableReferenceMemberColor != null) {
                     referenceMemberColor = nullableReferenceMemberColor.getRGB();
                 }
-                referenceMemberComponent = ChatComponents.makeUser(referenceMember.getDisplayName(), referenceMember.getMention() + ": ", referenceMemberColor, Component.empty());
-            } else if (referencedMessage.getAuthor().isPresent()) {
-                var referenceAuthor = referencedMessage.getAuthor().get();
-                referenceMemberComponent = ChatComponents.makeUser(referenceAuthor.getUsername(), referenceAuthor.getMention() + ": ", NamedTextColor.WHITE.value(), Component.empty());
+                referenceMemberComponent = ChatComponents.makeUser(referenceMember.getEffectiveName(), referenceMember.getAsMention() + ": ", referenceMemberColor, Component.empty());
+            } else if (referencedMessage.getMember() != null) {
+                var referenceAuthor = referencedMessage.getAuthor();
+                referenceMemberComponent = ChatComponents.makeUser(referenceAuthor.getName(), referenceAuthor.getAsMention() + ": ", NamedTextColor.WHITE.value(), Component.empty());
             } else {
-                var referenceData = referencedMessage.getData();
-                var referenceAuthor = referenceData.author();
-                referenceMemberComponent = ChatComponents.makeUser(referenceAuthor.username(), referenceAuthor.username() + ": ", NamedTextColor.WHITE.value(), Component.empty());
+                //var referenceData = referencedMessage();
+                var referenceAuthor = referencedMessage.getAuthor();
+                referenceMemberComponent = ChatComponents.makeUser(referenceAuthor.getName(), referenceAuthor.getName() + ": ", NamedTextColor.WHITE.value(), Component.empty());
             }
 
-            replyComponent = ChatComponents.makeReplyHeader(referenceMemberComponent, Component.text(referencedMessage.getContent()));
+            replyComponent = ChatComponents.makeReplyHeader(referenceMemberComponent, Component.text(referencedMessage.getContentDisplay()));
         }
 
-        var messageContent = message.getContent();
+        var messageContent = message.getContentRaw();
         Component messageComponent = Component.empty();
 
         var splitContent = splitMessage(messageContent);
-        var memberMentions = message.getMemberMentions();
-        var roleMentions = message.getRoleMentions();
+        var memberMentions = message.getMentions().getMembers();
+        var roleMentions = message.getMentions().getRoles();
         for (var part : splitContent) {
             if (part.matches(mentionPattern.pattern())) {
                 var matcher = integerPattern.matcher(part);
-                if(matcher.find()) {
-                    var snowflakeId = Snowflake.of(matcher.group());
+                if (matcher.find()) {
+                    var snowflakeId = matcher.group();
                     if (part.startsWith("<@&")) { // Role mention
-                        var mentionedRole = roleMentions.filter(p -> p.getId().equals(snowflakeId)).blockFirst();
-                        if (mentionedRole != null) {
-                            int color = mentionedRole.getColor().getRGB();
-                            if(color == 0) {
+                        var mentionedRoleOpt = roleMentions.stream().filter(p -> p.getId().equals(snowflakeId)).findFirst();
+                        if (mentionedRoleOpt.isPresent()) {
+                            var mentionedRole = mentionedRoleOpt.get();
+                            int color = mentionedRole.getColorRaw();
+                            if (color == 0) {
                                 color = 0x99aab5;
                             }
                             messageComponent = messageComponent.append(ChatComponents.makeUser(
                                     mentionedRole.getName(),
-                                    mentionedRole.getMention() + ": ",
+                                    mentionedRole.getAsMention() + ": ",
                                     color,
                                     ChatComponents.mentionIcon
                             ));
                         } else {
                             messageComponent = messageComponent.append(ChatComponents.makeUser(
                                     "unknown-role",
-                                    String.format("<@&%s>: ", snowflakeId.asString()),
+                                    String.format("<@&%s>: ", snowflakeId),
                                     NamedTextColor.WHITE.value(),
                                     ChatComponents.mentionIcon
                             ));
@@ -131,37 +148,34 @@ public class Events {
                         if (mentionedOpt.isPresent()) {
                             var mentioned = mentionedOpt.get();
                             messageComponent = messageComponent.append(ChatComponents.makeUser(
-                                    mentioned.getDisplayName(),
-                                    mentioned.getMention() + ": ",
+                                    mentioned.getEffectiveName(),
+                                    mentioned.getAsMention() + ": ",
                                     Colors.MENTION.value(),
                                     ChatComponents.mentionIcon
                             ));
                         } else {
                             messageComponent = messageComponent.append(ChatComponents.makeUser(
                                     "unknown-user",
-                                    String.format("<@%s>: ", snowflakeId.asString()),
+                                    String.format("<@%s>: ", snowflakeId),
                                     Colors.MENTION.value(),
                                     ChatComponents.mentionIcon
                             ));
                         }
                     } else if (part.startsWith("<#")) { // Channel mention
-                        var mentionedChannel = message.getClient().getChannelById(snowflakeId).block();
+                        var mentionedChannel = message.getJDA().getGuildChannelById(snowflakeId);
                         if (mentionedChannel != null
-                                && (mentionedChannel.getType() == Channel.Type.GUILD_TEXT
-                                || mentionedChannel.getType() == Channel.Type.GUILD_VOICE
-                                || mentionedChannel.getType() == Channel.Type.GUILD_NEWS)) {
+                                && ChannelType.guildTypes().contains(mentionedChannel.getType())) {
 
-                            var guildChannel = (GuildChannel) mentionedChannel;
                             messageComponent = messageComponent.append(ChatComponents.makeUser(
-                                    guildChannel.getName(),
-                                    guildChannel.getMention() + ": ",
+                                    mentionedChannel.getName(),
+                                    mentionedChannel.getAsMention() + ": ",
                                     Colors.MENTION.value(),
                                     ChatComponents.channelIcon
                             ));
                         } else {
                             messageComponent = messageComponent.append(ChatComponents.makeUser(
                                     "unknown",
-                                    String.format("<#%s>: ", snowflakeId.asString()),
+                                    String.format("<#%s>: ", snowflakeId),
                                     Colors.MENTION.value(),
                                     ChatComponents.channelIcon
                             ));
@@ -181,10 +195,14 @@ public class Events {
             messageComponent = messageComponent.appendSpace();
         }
         for (var attachment : attachments) {
-            messageComponent = messageComponent.append(ChatComponents.makeAttachment(attachment.getFilename(), attachment.getUrl()));
+            messageComponent = messageComponent.append(ChatComponents.makeAttachment(attachment.getFileName(), attachment.getUrl()));
         }
 
         var outputComponent = ChatComponents.makeMessage(memberComponent, replyComponent, messageComponent);
+
+        if (isEdited) {
+            outputComponent = outputComponent.append(Component.text("(edited)", NamedTextColor.GRAY));
+        }
 
         Bridge.enqueueMessage(outputComponent);
     }

@@ -31,6 +31,11 @@ repositories {
 
     maven { url 'https://maven.wispforest.io' }
 }
+ext {
+    reactor_bom_version = '2023.0.8'
+    jackson_datatype_jsr310_version = '2.17.0'
+    discordJsonVersion="1.7.10"
+}
 
 dependencies {
     // To change the versions see the gradle.properties file
@@ -43,8 +48,35 @@ dependencies {
 
     annotationProcessor modImplementation("io.wispforest:owo-lib:${project.owo_version}")
 
-    implementation include("com.discord4j:discord4j-core:${project.discord4j_version}")
-    modImplementation include("net.kyori:adventure-platform-fabric:${project.kyori_adventure_fabric_version}")
+    include implementation("net.dv8tion:JDA:${project.jda_version}") {
+        exclude module: 'opus-java'
+    }
+    include implementation("club.minnced:discord-webhooks:${project.webhooks_version}")
+
+    // JDA dependencies
+    include "org.json:json:20230227"
+    include "com.squareup.okio:okio:1.17.2"
+    include "com.squareup.okhttp3:okhttp:3.13.0"
+    include "org.apache.commons:commons-collections4:4.4"
+    include "org.jetbrains.kotlin:kotlin-stdlib:1.6.21"
+    include "com.neovisionaries:nv-websocket-client:2.14"
+    include "net.sf.trove4j:trove4j:3.0.3"
+    include 'com.fasterxml.jackson.core:jackson-databind:2.13.4.1'
+    include "com.fasterxml.jackson.core:jackson-annotations:2.13.1"
+    include "com.fasterxml.jackson.core:jackson-core:2.13.1"
+
+    /*include implementation("com.discord4j:discord4j-core:${project.discord4j_version}")
+    // Discord4j dependencies
+    include implementation("com.discord4j:discord4j-rest:${project.discord4j_version}")
+    include implementation("com.discord4j:discord4j-common:${project.discord4j_version}")
+    include platform("io.projectreactor:reactor-bom:$reactor_bom_version")
+    include implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jackson_datatype_jsr310_version")
+    include implementation("com.discord4j:discord-json:$discordJsonVersion")
+    include implementation("io.projectreactor:reactor-core:3.6.8")*/
+
+
+
+    include modImplementation("net.kyori:adventure-platform-fabric:${project.kyori_adventure_fabric_version}")
 }
 
 processResources {

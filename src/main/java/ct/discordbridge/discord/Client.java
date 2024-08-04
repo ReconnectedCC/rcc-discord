@@ -1,22 +1,31 @@
 package ct.discordbridge.discord;
 
 
+import club.minnced.discord.webhook.WebhookClient;
+import club.minnced.discord.webhook.WebhookClientBuilder;
 import ct.discordbridge.Bridge;
-import discord4j.common.util.Snowflake;
-import discord4j.core.DiscordClientBuilder;
-import discord4j.core.GatewayDiscordClient;
-import discord4j.core.event.domain.lifecycle.ReadyEvent;
-import discord4j.core.object.entity.Webhook;
-import discord4j.core.object.entity.channel.TextChannel;
-import discord4j.gateway.intent.Intent;
-import discord4j.gateway.intent.IntentSet;
-import reactor.core.publisher.Mono;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Webhook;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
+import net.dv8tion.jda.api.events.session.ReadyEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.utils.cache.CacheFlag;
+
+import java.util.EnumSet;
 
 public class Client {
     private TextChannel chatChannel;
     private Webhook webhook;
-    private GatewayDiscordClient client;
-    private Events events;
+    //private GatewayDiscordClient client;
+    private JDA client;
+    private final Events events = new Events();
+    private Guild guild;
+    private WebhookClient webhookClient;
 
     public Client() throws Exception {
         initialize();
@@ -30,7 +39,11 @@ public class Client {
         return webhook;
     }
 
-    public GatewayDiscordClient client() {
+    public WebhookClient webhookClient() {
+        return webhookClient;
+    }
+
+    public JDA client() {
         return client;
     }
 
@@ -38,40 +51,59 @@ public class Client {
         return events;
     }
 
+    public Guild guild() {
+        return guild;
+    }
+
     private void initialize() {
-        var clientMono = DiscordClientBuilder.create(Bridge.CONFIG.token())
-                .build()
-                .gateway()
-                .setEnabledIntents(IntentSet.of(
-                        Intent.MESSAGE_CONTENT,
-                        Intent.GUILD_MESSAGES,
-                        Intent.GUILD_MEMBERS
-                ))
-                .login();
+        client = JDABuilder
+                .create(Bridge.CONFIG.token(), EnumSet.of(GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT))
+                .disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.EMOJI, CacheFlag.STICKER, CacheFlag.CLIENT_STATUS, CacheFlag.ONLINE_STATUS, CacheFlag.SCHEDULED_EVENTS)
+                .addEventListeners(new DiscordEvents())
+                .build();
+    }
 
-        clientMono.flatMap(client -> {
-            client.on(ReadyEvent.class).subscribe(event -> {
-                this.client = client;
-                final var self = event.getSelf();
-                Bridge.LOGGER.info("Logged in as {}", self.getTag());
+    private class DiscordEvents extends ListenerAdapter {
+        @Override
+        public void onReady(ReadyEvent event) {
+            final var self = client.getSelfUser();
+            Bridge.LOGGER.info("Logged in as {}", self.getAsTag());
 
-                chatChannel = (TextChannel) client.getChannelById(Snowflake.of(Bridge.CONFIG.channelId())).block();
+            chatChannel = client.getTextChannelById(Bridge.CONFIG.channelId());
+            if (chatChannel == null) {
+                Bridge.LOGGER.error("Channel not found! Set an existing channel ID that I can see!");
+                client.shutdown();
+                return;
+            }
 
-                if(chatChannel == null){
-                    Bridge.LOGGER.error("Channel not found! Set an existing channel ID that I can see!");
-                    return;
-                }
+            guild = chatChannel.getGuild();
 
-                var webhookName = Bridge.CONFIG.name();
-                this.webhook = chatChannel.getWebhooks().filter(wh -> wh.getName().get().equals(webhookName)).singleOrEmpty().block();
-                if (this.webhook == null) {
-                    this.webhook = chatChannel.createWebhook(webhookName).block();
-                }
+            var webhookName = Bridge.CONFIG.name();
+            var webhooks = chatChannel.retrieveWebhooks().complete();
 
-                events = new Events(this);
-            });
-            return Mono.empty();
-        }).block();
-        clientMono.subscribe();
+            webhooks.stream()
+                    .filter((wh) -> wh.getName().equals(webhookName))
+                    .findFirst()
+                    .ifPresent((wh) -> {
+                        webhook = wh;
+                    });
+            if (webhook == null) {
+                webhook = chatChannel.createWebhook(webhookName).complete();
+            }
+
+            webhookClient = new WebhookClientBuilder(webhook.getUrl())
+                    .setDaemon(true)
+                    .buildJDA();
+        }
+
+        @Override
+        public void onMessageReceived(MessageReceivedEvent event) {
+            events.onMessageCreate(event);
+        }
+
+        @Override
+        public void onMessageUpdate(MessageUpdateEvent event) {
+            events.onMessageEdit(event);
+        }
     }
 }
