@@ -15,6 +15,7 @@ import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.EnumSet;
 
@@ -27,7 +28,7 @@ public class Client {
     private Guild guild;
     private WebhookClient webhookClient;
 
-    public Client() throws Exception {
+    public Client() {
         initialize();
     }
 
@@ -65,7 +66,7 @@ public class Client {
 
     private class DiscordEvents extends ListenerAdapter {
         @Override
-        public void onReady(ReadyEvent event) {
+        public void onReady(@NotNull ReadyEvent event) {
             final var self = client.getSelfUser();
             Bridge.LOGGER.info("Logged in as {}", self.getAsTag());
 
@@ -84,9 +85,7 @@ public class Client {
             webhooks.stream()
                     .filter((wh) -> wh.getName().equals(webhookName))
                     .findFirst()
-                    .ifPresent((wh) -> {
-                        webhook = wh;
-                    });
+                    .ifPresent((wh) -> webhook = wh);
             if (webhook == null) {
                 webhook = chatChannel.createWebhook(webhookName).complete();
             }
@@ -97,12 +96,12 @@ public class Client {
         }
 
         @Override
-        public void onMessageReceived(MessageReceivedEvent event) {
+        public void onMessageReceived(@NotNull MessageReceivedEvent event) {
             events.onMessageCreate(event);
         }
 
         @Override
-        public void onMessageUpdate(MessageUpdateEvent event) {
+        public void onMessageUpdate(@NotNull MessageUpdateEvent event) {
             events.onMessageEdit(event);
         }
     }

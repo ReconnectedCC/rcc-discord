@@ -1,10 +1,5 @@
 package ct.discordbridge;
 
-import net.dv8tion.jda.api.entities.Member;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.TextColor;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 public class Utils {
