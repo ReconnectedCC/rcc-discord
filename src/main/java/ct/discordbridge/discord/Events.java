@@ -13,7 +13,11 @@ import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,6 +25,33 @@ import java.util.regex.Pattern;
 public class Events {
     private static final Pattern mentionPattern = Pattern.compile("(<@[!&]?\\d+>|<#\\d+>)");
     private static final Pattern integerPattern = Pattern.compile("\\d+");
+
+    private final HashMap<String, String> messageCache = new HashMap<>();
+
+    private boolean isActuallyEdited(String id, String content) {
+        MessageDigest messageDigest;
+        try {
+            messageDigest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            Bridge.LOGGER.error("sha256 no longer exists :(", e);
+            return true;
+        }
+
+        var digest = new String(messageDigest.digest(content.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
+
+        if (messageCache.containsKey(id)) {
+            messageCache.put(id, digest);
+            return false;
+        }
+
+        if(messageCache.get(id).equals(content)) {
+            return false;
+        }
+
+        messageCache.put(id, content);
+
+        return true;
+    }
 
     public static List<String> splitMessage(String message) {
         List<String> parts = new ArrayList<>();
@@ -75,6 +106,12 @@ public class Events {
     }
 
     public void buildMessage(Message message, Member member, boolean isEdited) {
+        var isActuallyEdited = isActuallyEdited(message.getId(), message.getContentRaw());
+        if(isEdited && !isActuallyEdited) {
+            return;
+        }
+        isEdited = isActuallyEdited;
+
         DiscordMessage.MESSAGE_CREATE.invoker().messageCreate(message, member, isEdited);
 
         int memberColor = NamedTextColor.WHITE.value();
@@ -195,6 +232,7 @@ public class Events {
         }
         for (var attachment : attachments) {
             messageComponent = messageComponent.append(ChatComponents.makeAttachment(attachment.getFileName(), attachment.getUrl()));
+            messageComponent = messageComponent.appendSpace();
         }
 
         var outputComponent = ChatComponents.makeMessage(memberComponent, replyComponent, messageComponent);

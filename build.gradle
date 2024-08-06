@@ -47,6 +47,7 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     annotationProcessor modImplementation("io.wispforest:owo-lib:${project.owo_version}")
+    include "io.wispforest:owo-sentinel:${project.owo_version}"
 
     include implementation("net.dv8tion:JDA:${project.jda_version}") {
         exclude module: 'opus-java'
@@ -64,17 +65,6 @@ dependencies {
     include 'com.fasterxml.jackson.core:jackson-databind:2.13.4.1'
     include "com.fasterxml.jackson.core:jackson-annotations:2.13.1"
     include "com.fasterxml.jackson.core:jackson-core:2.13.1"
-
-    /*include implementation("com.discord4j:discord4j-core:${project.discord4j_version}")
-    // Discord4j dependencies
-    include implementation("com.discord4j:discord4j-rest:${project.discord4j_version}")
-    include implementation("com.discord4j:discord4j-common:${project.discord4j_version}")
-    include platform("io.projectreactor:reactor-bom:$reactor_bom_version")
-    include implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jackson_datatype_jsr310_version")
-    include implementation("com.discord4j:discord-json:$discordJsonVersion")
-    include implementation("io.projectreactor:reactor-core:3.6.8")*/
-
-
 
     include modImplementation("net.kyori:adventure-platform-fabric:${project.kyori_adventure_fabric_version}")
 }
