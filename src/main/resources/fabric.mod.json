@@ -4,9 +4,11 @@
   "version": "${version}",
   "name": "Discord Bridge",
   "description": "",
-  "authors": [],
+  "authors": [
+    "AlexDevs"
+  ],
   "contact": {},
-  "license": "All-Rights-Reserved",
+  "license": "MIT License",
   "icon": "assets/discordbridge/icon.png",
   "environment": "server",
   "entrypoints": {
