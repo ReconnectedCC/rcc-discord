@@ -39,18 +39,17 @@ public class Events {
 
         var digest = new String(messageDigest.digest(content.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
 
-        if (messageCache.containsKey(id)) {
+        if (!messageCache.containsKey(id)) {
             messageCache.put(id, digest);
             return false;
         }
 
-        if(messageCache.get(id).equals(content)) {
-            return false;
+        if(!messageCache.get(id).equals(content)) {
+            messageCache.put(id, content);
+            return true;
         }
 
-        messageCache.put(id, content);
-
-        return true;
+        return false;
     }
 
     public static List<String> splitMessage(String message) {
