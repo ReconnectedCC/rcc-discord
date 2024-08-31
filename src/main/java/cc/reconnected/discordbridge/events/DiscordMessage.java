@@ -1,4 +1,4 @@
-package ct.discordbridge.events;
+package cc.reconnected.discordbridge.events;
 
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;

@@ -1,10 +1,10 @@
-package ct.discordbridge;
+package cc.reconnected.discordbridge;
 
+import cc.reconnected.discordbridge.discord.Client;
 import club.minnced.discord.webhook.send.AllowedMentions;
 import club.minnced.discord.webhook.send.WebhookEmbed;
 import club.minnced.discord.webhook.send.WebhookEmbedBuilder;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
-import ct.discordbridge.discord.Client;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -21,15 +21,14 @@ import org.slf4j.LoggerFactory;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-
 public class Bridge implements ModInitializer {
 
-    public static final String MOD_ID = "ct-discord";
+    public static final String MOD_ID = "rcc-discord";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     private static Bridge INSTANCE;
 
-    public static final ct.discordbridge.DiscordConfig CONFIG = ct.discordbridge.DiscordConfig.createAndLoad();
+    public static final cc.reconnected.discordbridge.DiscordConfig CONFIG = cc.reconnected.discordbridge.DiscordConfig.createAndLoad();
     private Client client;
 
     private static final Queue<Component> chatQueue = new ConcurrentLinkedQueue<>();

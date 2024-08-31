@@ -1,9 +1,9 @@
-package ct.discordbridge.discord;
+package cc.reconnected.discordbridge.discord;
 
 
 import club.minnced.discord.webhook.WebhookClient;
 import club.minnced.discord.webhook.WebhookClientBuilder;
-import ct.discordbridge.Bridge;
+import cc.reconnected.discordbridge.Bridge;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Guild;

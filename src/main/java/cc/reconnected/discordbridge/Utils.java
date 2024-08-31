@@ -1,4 +1,4 @@
-package ct.discordbridge;
+package cc.reconnected.discordbridge;
 
 import net.minecraft.server.network.ServerPlayerEntity;
 

@@ -1,9 +1,9 @@
-package ct.discordbridge.discord;
+package cc.reconnected.discordbridge.discord;
 
-import ct.discordbridge.Bridge;
-import ct.discordbridge.ChatComponents;
-import ct.discordbridge.Colors;
-import ct.discordbridge.events.DiscordMessage;
+import cc.reconnected.discordbridge.Colors;
+import cc.reconnected.discordbridge.events.DiscordMessage;
+import cc.reconnected.discordbridge.Bridge;
+import cc.reconnected.discordbridge.ChatComponents;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageType;
