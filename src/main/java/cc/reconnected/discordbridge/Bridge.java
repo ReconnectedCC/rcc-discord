@@ -70,28 +70,40 @@ public class Bridge implements ModInitializer {
         });
 
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
+            if(!client.isReady())
+                return;
             sendServerStatus(":hourglass: **Server is starting...**", NamedTextColor.YELLOW.value());
         });
 
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            if(!client.isReady())
+                return;
             sendServerStatus(":up: **Server started!**", NamedTextColor.GREEN.value());
         });
 
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            if(!client.isReady())
+                return;
             sendServerStatus(":electric_plug: **Server is stopping!**", NamedTextColor.RED.value());
         });
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            if(!client.isReady())
+                return;
             var playerName = handler.player.getDisplayName().getString();
             sendPlayerStatus(String.format("%s joined the server", playerName), NamedTextColor.GREEN.value(), Utils.getAvatarThumbnailUrl(handler.player));
         });
 
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            if(!client.isReady())
+                return;
             var playerName = handler.player.getDisplayName().getString();
             sendPlayerStatus(String.format("%s left the server", playerName), NamedTextColor.RED.value(), Utils.getAvatarThumbnailUrl(handler.player));
         });
 
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, damageSource) -> {
+            if(!client.isReady())
+                return;
             if (!(entity instanceof ServerPlayerEntity player))
                 return;
 
@@ -102,6 +114,8 @@ public class Bridge implements ModInitializer {
         });
 
         ServerMessageEvents.CHAT_MESSAGE.register((message, sender, params) -> {
+            if(!client.isReady())
+                return;
             var playerName = sender.getDisplayName().getString();
             var avatarUrl = Utils.getAvatarUrl(sender);
             sendPlayerMessage(message.message(), playerName, avatarUrl);
@@ -113,6 +127,8 @@ public class Bridge implements ModInitializer {
     }
 
     public void sendServerStatus(String message, int color) {
+        if(!client.isReady())
+            return;
         var embed = new WebhookEmbedBuilder()
                 .setDescription(message)
                 .setColor(color)
@@ -121,6 +137,8 @@ public class Bridge implements ModInitializer {
     }
 
     public void sendPlayerStatus(String message, int color, String avatarUrl) {
+        if(!client.isReady())
+            return;
         var embed= new WebhookEmbedBuilder()
                 .setAuthor(new WebhookEmbed.EmbedAuthor(message, avatarUrl, null))
                 .setColor(color)
@@ -129,6 +147,8 @@ public class Bridge implements ModInitializer {
     }
 
     public void sendPlayerMessage(String message, String name, String avatarUrl) {
+        if(!client.isReady())
+            return;
         var webhookMessage = new WebhookMessageBuilder()
                 .setAvatarUrl(avatarUrl)
                 .setUsername(name)

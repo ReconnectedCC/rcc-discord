@@ -27,6 +27,7 @@ public class Client {
     private final Events events = new Events();
     private Guild guild;
     private WebhookClient webhookClient;
+    private boolean isReady = false;
 
     public Client() {
         initialize();
@@ -54,6 +55,10 @@ public class Client {
 
     public Guild guild() {
         return guild;
+    }
+
+    public boolean isReady() {
+        return isReady;
     }
 
     private void initialize() {
@@ -90,9 +95,15 @@ public class Client {
                 webhook = chatChannel.createWebhook(webhookName).complete();
             }
 
+            if (webhook == null) {
+                Bridge.LOGGER.error("Attempt to create a webhook failed! Please create a WebHook by the name {} and restart the server", webhookName);
+                client.shutdown();
+                return;
+            }
             webhookClient = new WebhookClientBuilder(webhook.getUrl())
                     .setDaemon(true)
                     .buildJDA();
+            isReady = true;
         }
 
         @Override
