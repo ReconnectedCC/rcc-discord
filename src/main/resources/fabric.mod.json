@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "discordbridge",
+  "id": "rcc-discord",
   "version": "${version}",
   "name": "Discord Bridge",
   "description": "",
