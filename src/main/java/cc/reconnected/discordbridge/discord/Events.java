@@ -1,9 +1,12 @@
 package cc.reconnected.discordbridge.discord;
 
 import cc.reconnected.discordbridge.Colors;
-import cc.reconnected.discordbridge.events.DiscordMessage;
+import cc.reconnected.discordbridge.events.DiscordMessageEvents;
 import cc.reconnected.discordbridge.Bridge;
 import cc.reconnected.discordbridge.ChatComponents;
+import cc.reconnected.discordbridge.parser.MarkdownParser;
+import cc.reconnected.discordbridge.parser.MentionNodeParser;
+import eu.pb4.placeholders.api.parsers.NodeParser;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageType;
@@ -12,6 +15,8 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.json.JSONComponentSerializer;
+import net.minecraft.text.Text;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -44,7 +49,7 @@ public class Events {
             return false;
         }
 
-        if(!messageCache.get(id).equals(content)) {
+        if (!messageCache.get(id).equals(content)) {
             messageCache.put(id, content);
             return true;
         }
@@ -106,12 +111,16 @@ public class Events {
 
     public void buildMessage(Message message, Member member, boolean isEdited) {
         var isActuallyEdited = isActuallyEdited(message.getId(), message.getContentRaw());
-        if(isEdited && !isActuallyEdited) {
+        if (isEdited && !isActuallyEdited) {
             return;
         }
         isEdited = isActuallyEdited;
 
-        DiscordMessage.MESSAGE_CREATE.invoker().messageCreate(message, member, isEdited);
+        if (isEdited) {
+            DiscordMessageEvents.MESSAGE_EDIT.invoker().onEdit(message, member);
+        } else {
+            DiscordMessageEvents.MESSAGE_CREATE.invoker().onCreate(message, member);
+        }
 
         int memberColor = NamedTextColor.WHITE.value();
 
@@ -147,6 +156,12 @@ public class Events {
 
         var messageContent = message.getContentRaw();
         Component messageComponent = Component.empty();
+
+        /*var parser = NodeParser.merge(MentionNodeParser.DEFAULT, MarkdownParser.contentParser);
+        var mdContentVan = parser.parseNode(messageContent).toText();
+
+        var json = Text.Serializer.toJson(mdContentVan);
+        var mdContent = JSONComponentSerializer.json().deserialize(json);*/
 
         var splitContent = splitMessage(messageContent);
         var memberMentions = message.getMentions().getMembers();
