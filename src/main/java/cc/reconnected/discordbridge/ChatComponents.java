@@ -1,12 +1,15 @@
 package cc.reconnected.discordbridge;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.ComponentLike;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.kyori.adventure.text.serializer.json.JSONComponentSerializer;
+import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
 
 public class ChatComponents {
@@ -59,5 +62,9 @@ public class ChatComponents {
                 .color(TextColor.color(NamedTextColor.BLUE))
                 .hoverEvent(HoverEvent.showText(Component.text("Click to open attachment")))
                 .clickEvent(ClickEvent.openUrl(url));
+    }
+
+    public static Text toText(Component component) {
+        return Text.Serializer.fromJson(JSONComponentSerializer.json().serialize(component));
     }
 }

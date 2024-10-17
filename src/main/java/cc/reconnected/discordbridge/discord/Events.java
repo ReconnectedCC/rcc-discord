@@ -1,6 +1,5 @@
 package cc.reconnected.discordbridge.discord;
 
-import cc.reconnected.discordbridge.Colors;
 import cc.reconnected.discordbridge.events.DiscordMessageEvents;
 import cc.reconnected.discordbridge.Bridge;
 import cc.reconnected.discordbridge.ChatComponents;
@@ -10,7 +9,6 @@ import eu.pb4.placeholders.api.parsers.NodeParser;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageType;
-import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import net.kyori.adventure.text.Component;
@@ -28,9 +26,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Events {
-    private static final Pattern mentionPattern = Pattern.compile("(<@[!&]?\\d+>|<#\\d+>)");
-    private static final Pattern integerPattern = Pattern.compile("\\d+");
-
     private final HashMap<String, String> messageCache = new HashMap<>();
 
     private boolean isActuallyEdited(String id, String content) {
@@ -55,26 +50,6 @@ public class Events {
         }
 
         return false;
-    }
-
-    public static List<String> splitMessage(String message) {
-        List<String> parts = new ArrayList<>();
-        Matcher matcher = mentionPattern.matcher(message);
-
-        int lastEnd = 0;
-        while (matcher.find()) {
-            if (matcher.start() > lastEnd) {
-                parts.add(message.substring(lastEnd, matcher.start()));
-            }
-            parts.add(matcher.group(1));
-            lastEnd = matcher.end();
-        }
-
-        if (lastEnd < message.length()) {
-            parts.add(message.substring(lastEnd));
-        }
-
-        return parts;
     }
 
     public void onMessageCreate(MessageReceivedEvent event) {
@@ -157,88 +132,15 @@ public class Events {
         var messageContent = message.getContentRaw();
         Component messageComponent = Component.empty();
 
-        /*var parser = NodeParser.merge(MentionNodeParser.DEFAULT, MarkdownParser.contentParser);
+        var parser = NodeParser.merge(new MentionNodeParser(message), MarkdownParser.contentParser);
         var mdContentVan = parser.parseNode(messageContent).toText();
 
         var json = Text.Serializer.toJson(mdContentVan);
-        var mdContent = JSONComponentSerializer.json().deserialize(json);*/
+        var mdContent = JSONComponentSerializer.json().deserialize(json);
 
-        var splitContent = splitMessage(messageContent);
-        var memberMentions = message.getMentions().getMembers();
-        var roleMentions = message.getMentions().getRoles();
-        for (var part : splitContent) {
-            if (part.matches(mentionPattern.pattern())) {
-                var matcher = integerPattern.matcher(part);
-                if (matcher.find()) {
-                    var snowflakeId = matcher.group();
-                    if (part.startsWith("<@&")) { // Role mention
-                        var mentionedRoleOpt = roleMentions.stream().filter(p -> p.getId().equals(snowflakeId)).findFirst();
-                        if (mentionedRoleOpt.isPresent()) {
-                            var mentionedRole = mentionedRoleOpt.get();
-                            int color = mentionedRole.getColorRaw();
-                            if (color == 0) {
-                                color = 0x99aab5;
-                            }
-                            messageComponent = messageComponent.append(ChatComponents.makeUser(
-                                    mentionedRole.getName(),
-                                    mentionedRole.getAsMention() + ": ",
-                                    color,
-                                    ChatComponents.mentionIcon
-                            ));
-                        } else {
-                            messageComponent = messageComponent.append(ChatComponents.makeUser(
-                                    "unknown-role",
-                                    String.format("<@&%s>: ", snowflakeId),
-                                    NamedTextColor.WHITE.value(),
-                                    ChatComponents.mentionIcon
-                            ));
-                        }
-                    } else if (part.startsWith("<@") || part.startsWith("<@!")) { // Member mention
-                        var mentionedOpt = memberMentions.stream().filter(p -> p.getId().equals(snowflakeId)).findFirst();
-                        if (mentionedOpt.isPresent()) {
-                            var mentioned = mentionedOpt.get();
-                            messageComponent = messageComponent.append(ChatComponents.makeUser(
-                                    mentioned.getEffectiveName(),
-                                    mentioned.getAsMention() + ": ",
-                                    Colors.MENTION.value(),
-                                    ChatComponents.mentionIcon
-                            ));
-                        } else {
-                            messageComponent = messageComponent.append(ChatComponents.makeUser(
-                                    "unknown-user",
-                                    String.format("<@%s>: ", snowflakeId),
-                                    Colors.MENTION.value(),
-                                    ChatComponents.mentionIcon
-                            ));
-                        }
-                    } else if (part.startsWith("<#")) { // Channel mention
-                        var mentionedChannel = message.getJDA().getGuildChannelById(snowflakeId);
-                        if (mentionedChannel != null
-                                && ChannelType.guildTypes().contains(mentionedChannel.getType())) {
+        messageComponent = messageComponent.append(mdContent);
 
-                            messageComponent = messageComponent.append(ChatComponents.makeUser(
-                                    mentionedChannel.getName(),
-                                    mentionedChannel.getAsMention() + ": ",
-                                    Colors.MENTION.value(),
-                                    ChatComponents.channelIcon
-                            ));
-                        } else {
-                            messageComponent = messageComponent.append(ChatComponents.makeUser(
-                                    "unknown",
-                                    String.format("<#%s>: ", snowflakeId),
-                                    Colors.MENTION.value(),
-                                    ChatComponents.channelIcon
-                            ));
-                        }
-                    }
-                } else {
-                    messageComponent = messageComponent.append(Component.text(part));
-                }
-
-            } else {
-                messageComponent = messageComponent.append(Component.text(part));
-            }
-        }
+        //messageComponent = MentionNodeParser.parseMentions(message, messageContent, messageComponent);
 
         var attachments = message.getAttachments();
         if (!messageContent.isEmpty()) {
@@ -257,4 +159,5 @@ public class Events {
 
         Bridge.enqueueMessage(outputComponent);
     }
+
 }
