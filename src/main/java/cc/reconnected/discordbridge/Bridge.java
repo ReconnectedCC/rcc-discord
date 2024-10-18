@@ -1,11 +1,13 @@
 package cc.reconnected.discordbridge;
 
+import cc.reconnected.discordbridge.commands.DiscordCommand;
 import cc.reconnected.discordbridge.discord.Client;
 import club.minnced.discord.webhook.send.AllowedMentions;
 import club.minnced.discord.webhook.send.WebhookEmbed;
 import club.minnced.discord.webhook.send.WebhookEmbedBuilder;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -18,7 +20,9 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.Queue;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Bridge implements ModInitializer {
@@ -45,6 +49,8 @@ public class Bridge implements ModInitializer {
         return client;
     }
 
+    public static final HashMap<String, ServerPlayerEntity> linkCodes = new HashMap<>();
+
     @Override
     public void onInitialize() {
         LOGGER.info("Initializing Discord Bridge");
@@ -55,6 +61,8 @@ public class Bridge implements ModInitializer {
             LOGGER.error("Error creating Discord client", e);
             return;
         }
+
+        CommandRegistrationCallback.EVENT.register(DiscordCommand::register);
 
         ServerTickEvents.START_SERVER_TICK.register(server -> {
             while (!chatQueue.isEmpty()) {

@@ -7,15 +7,20 @@ import cc.reconnected.discordbridge.Bridge;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.Webhook;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
 
@@ -26,6 +31,8 @@ public class Client {
     private JDA client;
     private final Events events = new Events();
     private Guild guild;
+    @Nullable
+    private Role role = null;
     private WebhookClient webhookClient;
     private boolean isReady = false;
 
@@ -57,6 +64,10 @@ public class Client {
         return guild;
     }
 
+    public Role role() {
+        return role;
+    }
+
     public boolean isReady() {
         return isReady;
     }
@@ -84,6 +95,8 @@ public class Client {
 
             guild = chatChannel.getGuild();
 
+            role = guild.getRoleById(Bridge.CONFIG.roleId());
+
             var webhookName = Bridge.CONFIG.name();
             var webhooks = chatChannel.retrieveWebhooks().complete();
 
@@ -103,6 +116,12 @@ public class Client {
             webhookClient = new WebhookClientBuilder(webhook.getUrl())
                     .setDaemon(true)
                     .buildJDA();
+
+            guild.updateCommands().addCommands(
+                    Commands.slash("link", "Link your Minecraft profile with Discord.")
+                            .addOption(OptionType.STRING, "code", "Linking code")
+            ).queue();
+
             isReady = true;
         }
 
@@ -114,6 +133,11 @@ public class Client {
         @Override
         public void onMessageUpdate(@NotNull MessageUpdateEvent event) {
             events.onMessageEdit(event);
+        }
+
+        @Override
+        public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+            events.onSlashCommandInteraction(event);
         }
     }
 }

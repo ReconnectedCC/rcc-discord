@@ -7,6 +7,7 @@ public class DiscordConfigModel {
     public String token = "";
     public String name = "rcc-bridge";
     public String channelId = "00000";
+    public String roleId = "00000";
     public String avatarApiUrl = "https://mc-heads.net/head/{{uuid}}";
     public String avatarApiThumbnailUrl = "https://mc-heads.net/head/{{uuid}}/32";
     public String inviteLink = "https://discord.gg/myinvite";

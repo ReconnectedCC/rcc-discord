@@ -1,16 +1,20 @@
 package cc.reconnected.discordbridge.discord;
 
+import cc.reconnected.discordbridge.Colors;
 import cc.reconnected.discordbridge.events.DiscordMessageEvents;
 import cc.reconnected.discordbridge.Bridge;
 import cc.reconnected.discordbridge.ChatComponents;
 import cc.reconnected.discordbridge.parser.MarkdownParser;
 import cc.reconnected.discordbridge.parser.MentionNodeParser;
+import cc.reconnected.server.database.PlayerData;
 import eu.pb4.placeholders.api.parsers.NodeParser;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageType;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
+import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.json.JSONComponentSerializer;
@@ -160,4 +164,54 @@ public class Events {
         Bridge.enqueueMessage(outputComponent);
     }
 
+
+    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+        if (!event.getName().equals("link")) {
+            return;
+        }
+        var codeOption = event.getOption("code");
+        if (codeOption == null) {
+            event.reply("Please provide a link code via the `/discord link` command in-game.")
+                    .setEphemeral(true).queue();
+            return;
+        }
+
+        var code = codeOption.getAsString();
+
+        if (!Bridge.linkCodes.containsKey(code)) {
+            event.reply("Code not found! Run the `/discord link` command in-game to obtain a link code.")
+                    .setEphemeral(true).queue();
+            return;
+        }
+
+        var player = Bridge.linkCodes.get(code);
+        var playerData = PlayerData.getPlayer(player);
+
+        playerData.set(PlayerData.KEYS.discordId, event.getUser().getId()).join();
+
+        var client = Bridge.getInstance().getClient();
+        var member = event.getMember();
+        if (client.role() != null) {
+            try {
+                client.guild().addRoleToMember(member, client.role()).reason("Linked via link code").queue();
+            } catch (InsufficientPermissionException e) {
+                Bridge.LOGGER.error("Could not add role to player", e);
+            }
+        }
+
+        Bridge.linkCodes.remove(code);
+
+        event.reply("Your Discord profile is now linked with **" + playerData.getUsername() + "**!")
+                .setEphemeral(true).queue();
+
+
+        var text = Component.empty()
+                .append(Component.text("You linked your profile to "))
+                .append(Component.text(member.getEffectiveName())
+                        .color(Colors.BLURPLE))
+                .append(Component.text(" on Discord!"))
+                .color(NamedTextColor.GREEN);
+
+        player.sendMessage(text);
+    }
 }

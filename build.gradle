@@ -71,6 +71,8 @@ dependencies {
 
     include modImplementation("net.kyori:adventure-platform-fabric:${project.kyori_adventure_fabric_version}")
     modImplementation include("eu.pb4:placeholder-api:${project.placeholderapi_version}")
+
+    modImplementation "cc.reconnected:rcc-server:${project.rccserver_version}"
 }
 
 processResources {
