@@ -187,7 +187,10 @@ public class Events {
         var player = Bridge.linkCodes.get(code);
         var playerData = PlayerData.getPlayer(player);
 
+        Bridge.discordLinks.put(event.getUser().getId(), player.getUuid());
         playerData.set(PlayerData.KEYS.discordId, event.getUser().getId()).join();
+
+        Bridge.getInstance().saveData();
 
         var client = Bridge.getInstance().getClient();
         var member = event.getMember();

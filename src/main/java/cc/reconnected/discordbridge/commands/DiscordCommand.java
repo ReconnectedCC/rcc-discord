@@ -77,14 +77,14 @@ public class DiscordCommand {
                             }
                             var player = context.getSource().getPlayer();
                             var playerData = PlayerData.getPlayer(player);
-                            if (playerData.get(PlayerData.KEYS.discordId) == null) {
+                            var snowflake = playerData.get(PlayerData.KEYS.discordId);
+                            if (snowflake == null) {
                                 context.getSource().sendFeedback(() -> Text.literal("You did not link your profile yet").setStyle(Style.EMPTY.withColor(Formatting.RED)), false);
                                 return 1;
                             }
 
                             var client = Bridge.getInstance().getClient();
                             if (client.role() != null) {
-                                var snowflake = playerData.get(PlayerData.KEYS.discordId);
                                 var guild = client.guild();
                                 var member = guild.getMemberById(snowflake);
                                 try {
@@ -94,7 +94,9 @@ public class DiscordCommand {
                                 }
                             }
 
+                            Bridge.discordLinks.remove(snowflake);
                             playerData.delete(PlayerData.KEYS.discordId).join();
+                            Bridge.getInstance().saveData();
 
                             context.getSource().sendFeedback(() -> Text.literal("You have unlinked your Discord profile!").setStyle(Style.EMPTY.withColor(Formatting.GREEN)), false);
 
