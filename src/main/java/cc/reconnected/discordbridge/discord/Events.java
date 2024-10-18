@@ -116,7 +116,7 @@ public class Events {
             var referenceMember = referencedMessage.getMember();
             if (referenceMember != null) {
                 var referenceMemberColor = NamedTextColor.WHITE.value();
-                var nullableReferenceMemberColor = member.getColor();
+                var nullableReferenceMemberColor = referenceMember.getColor();
                 if (nullableReferenceMemberColor != null) {
                     referenceMemberColor = nullableReferenceMemberColor.getRGB();
                 }
