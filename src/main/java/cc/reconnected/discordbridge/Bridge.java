@@ -20,6 +20,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.WorldSavePath;
 import org.slf4j.Logger;
@@ -46,6 +47,7 @@ public class Bridge implements ModInitializer {
 
     public static final cc.reconnected.discordbridge.DiscordConfig CONFIG = cc.reconnected.discordbridge.DiscordConfig.createAndLoad();
     private Client client;
+    private MinecraftServer mcServer;
 
     private static final Queue<Component> chatQueue = new ConcurrentLinkedQueue<>();
 
@@ -99,7 +101,7 @@ public class Bridge implements ModInitializer {
 
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             dataDirectory = server.getSavePath(WorldSavePath.ROOT).resolve("data").resolve(MOD_ID);
-
+            mcServer = server;
         });
 
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
@@ -181,5 +183,9 @@ public class Bridge implements ModInitializer {
         } catch (IOException e) {
             LOGGER.error("Exception Discord links map data", e);
         }
+    }
+
+    public String[] getPlayerNames() {
+        return mcServer.getPlayerManager().getPlayerNames();
     }
 }

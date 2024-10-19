@@ -23,11 +23,7 @@ import net.minecraft.text.Text;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class Events {
     private final HashMap<String, String> messageCache = new HashMap<>();
@@ -166,9 +162,14 @@ public class Events {
 
 
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
-        if (!event.getName().equals("link")) {
-            return;
+        switch (event.getName()) {
+            case "link" -> onLinkCommand(event);
+            case "list" -> onListCommand(event);
         }
+
+    }
+
+    private void onLinkCommand(SlashCommandInteractionEvent event) {
         var codeOption = event.getOption("code");
         if (codeOption == null) {
             event.reply("Please provide a link code via the `/discord link` command in-game.")
@@ -216,5 +217,16 @@ public class Events {
                 .color(NamedTextColor.GREEN);
 
         player.sendMessage(text);
+    }
+
+    private void onListCommand(SlashCommandInteractionEvent event) {
+        var list = Bridge.getInstance().getPlayerNames();
+        String players;
+        if (list.length == 0) {
+            players = "*There are no players online*";
+        } else {
+            players = "**Online players**: " + String.join(", ", list);
+        }
+        event.reply(players).setEphemeral(true).queue();
     }
 }

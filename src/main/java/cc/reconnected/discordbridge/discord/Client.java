@@ -119,7 +119,8 @@ public class Client {
 
             guild.updateCommands().addCommands(
                     Commands.slash("link", "Link your Minecraft profile with Discord.")
-                            .addOption(OptionType.STRING, "code", "Linking code")
+                            .addOption(OptionType.STRING, "code", "Linking code"),
+                    Commands.slash("list", "Get online players.")
             ).queue();
 
             isReady = true;
