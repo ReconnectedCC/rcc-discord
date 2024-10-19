@@ -8,6 +8,8 @@ import club.minnced.discord.webhook.send.WebhookEmbedBuilder;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import net.dv8tion.jda.api.OnlineStatus;
+import net.dv8tion.jda.api.entities.Activity;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -80,6 +82,8 @@ public class Bridge implements ModInitializer {
 
         CommandRegistrationCallback.EVENT.register(DiscordCommand::register);
 
+        BridgeEvents.register(this);
+
         ServerTickEvents.START_SERVER_TICK.register(server -> {
             while (!chatQueue.isEmpty()) {
                 var message = chatQueue.poll();
@@ -95,9 +99,7 @@ public class Bridge implements ModInitializer {
 
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             dataDirectory = server.getSavePath(WorldSavePath.ROOT).resolve("data").resolve(MOD_ID);
-            if (!client.isReady())
-                return;
-            sendServerStatus(":hourglass: **Server is starting...**", NamedTextColor.YELLOW.value());
+
         });
 
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
@@ -120,50 +122,6 @@ public class Bridge implements ModInitializer {
             } else {
                 discordLinks = new ConcurrentHashMap<>();
             }
-
-            if (!client.isReady())
-                return;
-            sendServerStatus(":up: **Server started!**", NamedTextColor.GREEN.value());
-        });
-
-        ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
-            if (!client.isReady())
-                return;
-            sendServerStatus(":electric_plug: **Server is stopping!**", NamedTextColor.RED.value());
-        });
-
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            if (!client.isReady())
-                return;
-            var playerName = handler.player.getDisplayName().getString();
-            sendPlayerStatus(String.format("%s joined the server", playerName), NamedTextColor.GREEN.value(), Utils.getAvatarThumbnailUrl(handler.player));
-        });
-
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            if (!client.isReady())
-                return;
-            var playerName = handler.player.getDisplayName().getString();
-            sendPlayerStatus(String.format("%s left the server", playerName), NamedTextColor.RED.value(), Utils.getAvatarThumbnailUrl(handler.player));
-        });
-
-        ServerLivingEntityEvents.AFTER_DEATH.register((entity, damageSource) -> {
-            if (!client.isReady())
-                return;
-            if (!(entity instanceof ServerPlayerEntity player))
-                return;
-
-            var message = damageSource.getDeathMessage(entity).getString();
-            var avatarUrl = Utils.getAvatarThumbnailUrl(player);
-
-            sendPlayerStatus(message, NamedTextColor.GRAY.value(), avatarUrl);
-        });
-
-        ServerMessageEvents.CHAT_MESSAGE.register((message, sender, params) -> {
-            if (!client.isReady())
-                return;
-            var playerName = sender.getDisplayName().getString();
-            var avatarUrl = Utils.getAvatarUrl(sender);
-            sendPlayerMessage(message.message(), playerName, avatarUrl);
         });
     }
 
@@ -206,6 +164,14 @@ public class Bridge implements ModInitializer {
                 )
                 .build();
         client.webhookClient().send(webhookMessage);
+    }
+
+    public void setStatus(String string) {
+        setStatus(OnlineStatus.ONLINE, Activity.playing(string));
+    }
+
+    public void setStatus(OnlineStatus status, Activity activity) {
+        client.client().getPresence().setPresence(status, activity);
     }
 
     public void saveData() {

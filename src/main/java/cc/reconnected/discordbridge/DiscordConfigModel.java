@@ -18,4 +18,6 @@ public class DiscordConfigModel {
     public String reply = " <reference_username> <hover:show_text:'Message: <reference_message>'><gray>↵</gray>";
 
     public String messageFormat = "<prefix> <username><gray>:</gray><reply> <message>";
+
+    public boolean usePresence = true;
 }
