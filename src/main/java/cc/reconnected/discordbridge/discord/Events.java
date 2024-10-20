@@ -198,9 +198,15 @@ public class Events {
         if (client.role() != null) {
             try {
                 client.guild().addRoleToMember(member, client.role()).reason("Linked via link code").queue();
-            } catch (InsufficientPermissionException e) {
+            } catch (Exception e) {
                 Bridge.LOGGER.error("Could not add role to player", e);
             }
+        }
+
+        try {
+            member.modifyNickname(playerData.getUsername()).reason("Linked via link code");
+        } catch(Exception e) {
+            Bridge.LOGGER.error("Could not modify nickname", e);
         }
 
         Bridge.linkCodes.remove(code);
