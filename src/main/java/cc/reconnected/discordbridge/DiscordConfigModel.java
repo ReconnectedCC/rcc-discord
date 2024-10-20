@@ -20,4 +20,5 @@ public class DiscordConfigModel {
     public String messageFormat = "<prefix> <username><gray>:</gray><reply> <message>";
 
     public boolean usePresence = true;
+    public boolean enableSlashCommands = true;
 }

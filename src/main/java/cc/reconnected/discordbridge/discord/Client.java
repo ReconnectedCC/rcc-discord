@@ -138,7 +138,8 @@ public class Client {
 
         @Override
         public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
-            events.onSlashCommandInteraction(event);
+            if(Bridge.CONFIG.enableSlashCommands())
+                events.onSlashCommandInteraction(event);
         }
     }
 }
