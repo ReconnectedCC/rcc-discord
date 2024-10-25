@@ -4,9 +4,9 @@ import cc.reconnected.discordbridge.Colors;
 import cc.reconnected.discordbridge.events.DiscordMessageEvents;
 import cc.reconnected.discordbridge.Bridge;
 import cc.reconnected.discordbridge.ChatComponents;
-import cc.reconnected.discordbridge.parser.MarkdownParser;
 import cc.reconnected.discordbridge.parser.MentionNodeParser;
 import cc.reconnected.server.database.PlayerData;
+import cc.reconnected.server.parser.MarkdownParser;
 import eu.pb4.placeholders.api.parsers.NodeParser;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -14,7 +14,6 @@ import net.dv8tion.jda.api.entities.MessageType;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
-import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.json.JSONComponentSerializer;
@@ -132,15 +131,13 @@ public class Events {
         var messageContent = message.getContentRaw();
         Component messageComponent = Component.empty();
 
-        var parser = NodeParser.merge(new MentionNodeParser(message), MarkdownParser.contentParser);
+        var parser = NodeParser.merge(new MentionNodeParser(message), MarkdownParser.defaultParser);
         var mdContentVan = parser.parseNode(messageContent).toText();
 
         var json = Text.Serializer.toJson(mdContentVan);
         var mdContent = JSONComponentSerializer.json().deserialize(json);
 
         messageComponent = messageComponent.append(mdContent);
-
-        //messageComponent = MentionNodeParser.parseMentions(message, messageContent, messageComponent);
 
         var attachments = message.getAttachments();
         if (!messageContent.isEmpty()) {

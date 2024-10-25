@@ -2,7 +2,6 @@ package cc.reconnected.discordbridge.parser;
 
 import cc.reconnected.discordbridge.ChatComponents;
 import cc.reconnected.discordbridge.Colors;
-import cc.reconnected.discordbridge.discord.Events;
 import eu.pb4.placeholders.api.node.TextNode;
 import eu.pb4.placeholders.api.parsers.NodeParser;
 import net.dv8tion.jda.api.entities.Message;
