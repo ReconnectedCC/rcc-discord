@@ -21,6 +21,6 @@
     "fabricloader": ">=${loader_version}",
     "fabric": "*",
     "minecraft": "${minecraft_version}",
-    "rcc-server": ">=1.10.1"
+    "rcc-server": ">=1.14.3"
   }
 }

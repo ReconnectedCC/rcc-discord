@@ -1,8 +1,7 @@
 package cc.reconnected.discordbridge.commands;
 
 import cc.reconnected.discordbridge.Bridge;
-import cc.reconnected.server.RccServer;
-import cc.reconnected.server.database.PlayerData;
+import cc.reconnected.server.api.PlayerMeta;
 import com.mojang.brigadier.CommandDispatcher;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import net.kyori.adventure.text.Component;
@@ -43,8 +42,8 @@ public class DiscordCommand {
                                 return 1;
                             }
                             var player = context.getSource().getPlayer();
-                            var playerData = PlayerData.getPlayer(player);
-                            if (playerData.get(PlayerData.KEYS.discordId) != null) {
+                            var playerData = PlayerMeta.getPlayer(player);
+                            if (playerData.get(PlayerMeta.KEYS.discordId) != null) {
                                 context.getSource().sendFeedback(() -> Text.literal("You already linked your Discord profile!").setStyle(Style.EMPTY.withColor(Formatting.RED)), false);
                                 return 1;
                             }
@@ -76,8 +75,8 @@ public class DiscordCommand {
                                 return 1;
                             }
                             var player = context.getSource().getPlayer();
-                            var playerData = PlayerData.getPlayer(player);
-                            var snowflake = playerData.get(PlayerData.KEYS.discordId);
+                            var playerData = PlayerMeta.getPlayer(player);
+                            var snowflake = playerData.get(PlayerMeta.KEYS.discordId);
                             if (snowflake == null) {
                                 context.getSource().sendFeedback(() -> Text.literal("You did not link your profile yet").setStyle(Style.EMPTY.withColor(Formatting.RED)), false);
                                 return 1;
@@ -95,7 +94,7 @@ public class DiscordCommand {
                             }
 
                             Bridge.discordLinks.remove(snowflake);
-                            playerData.delete(PlayerData.KEYS.discordId).join();
+                            playerData.delete(PlayerMeta.KEYS.discordId).join();
                             Bridge.getInstance().saveData();
 
                             context.getSource().sendFeedback(() -> Text.literal("You have unlinked your Discord profile!").setStyle(Style.EMPTY.withColor(Formatting.GREEN)), false);

@@ -5,7 +5,7 @@ import cc.reconnected.discordbridge.events.DiscordMessageEvents;
 import cc.reconnected.discordbridge.Bridge;
 import cc.reconnected.discordbridge.ChatComponents;
 import cc.reconnected.discordbridge.parser.MentionNodeParser;
-import cc.reconnected.server.database.PlayerData;
+import cc.reconnected.server.api.PlayerMeta;
 import cc.reconnected.server.parser.MarkdownParser;
 import eu.pb4.placeholders.api.parsers.NodeParser;
 import net.dv8tion.jda.api.entities.Member;
@@ -183,10 +183,10 @@ public class Events {
         }
 
         var player = Bridge.linkCodes.get(code);
-        var playerData = PlayerData.getPlayer(player);
+        var playerData = PlayerMeta.getPlayer(player);
 
         Bridge.discordLinks.put(event.getUser().getId(), player.getUuid());
-        playerData.set(PlayerData.KEYS.discordId, event.getUser().getId()).join();
+        playerData.set(PlayerMeta.KEYS.discordId, event.getUser().getId()).join();
 
         Bridge.getInstance().saveData();
 
