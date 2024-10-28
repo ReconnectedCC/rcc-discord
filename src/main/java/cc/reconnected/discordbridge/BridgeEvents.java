@@ -1,5 +1,6 @@
 package cc.reconnected.discordbridge;
 
+import cc.reconnected.server.RccServer;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -32,6 +33,16 @@ public class BridgeEvents {
             bridge.sendServerStatus(":electric_plug: **Server is stopping!**", NamedTextColor.RED.value());
             bridge.setStatus(OnlineStatus.DO_NOT_DISTURB, Activity.watching("the server stopping"));
             bridge.getClient().client().shutdown();
+        });
+
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            RccServer.LOGGER.info("Attempting rcc-discord force shutdown...");
+            try {
+                var jda = bridge.getClient().client();
+                jda.shutdownNow();
+            } catch (Exception e) {
+                RccServer.LOGGER.error("Force disconnect rcc-bridge failure", e);
+            }
         });
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
@@ -72,7 +83,7 @@ public class BridgeEvents {
     }
 
     private static void updatePlayerCount(int count) {
-        if(!Bridge.CONFIG.usePresence())
+        if (!Bridge.CONFIG.usePresence())
             return;
 
         var text = "with " + count + " players!";
