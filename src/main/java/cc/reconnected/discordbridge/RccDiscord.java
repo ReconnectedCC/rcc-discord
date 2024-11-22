@@ -2,6 +2,7 @@ package cc.reconnected.discordbridge;
 
 import cc.reconnected.discordbridge.commands.DiscordCommand;
 import cc.reconnected.discordbridge.discord.Client;
+import cc.reconnected.library.config.ConfigManager;
 import club.minnced.discord.webhook.send.AllowedMentions;
 import club.minnced.discord.webhook.send.WebhookEmbed;
 import club.minnced.discord.webhook.send.WebhookEmbedBuilder;
@@ -34,24 +35,24 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class Bridge implements ModInitializer {
+public class RccDiscord implements ModInitializer {
 
     public static final String MOD_ID = "rcc-discord";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    private static Bridge INSTANCE;
+    private static RccDiscord INSTANCE;
 
-    public static final cc.reconnected.discordbridge.DiscordConfig CONFIG = cc.reconnected.discordbridge.DiscordConfig.createAndLoad();
+    public static RccDiscordConfig CONFIG;
     private Client client;
     private MinecraftServer mcServer;
 
     private static final Queue<Component> chatQueue = new ConcurrentLinkedQueue<>();
 
-    public Bridge() {
+    public RccDiscord() {
         INSTANCE = this;
     }
 
-    public static Bridge getInstance() {
+    public static RccDiscord getInstance() {
         return INSTANCE;
     }
 
@@ -70,6 +71,13 @@ public class Bridge implements ModInitializer {
     @Override
     public void onInitialize() {
         LOGGER.info("Initializing Discord Bridge");
+
+        try {
+            CONFIG = ConfigManager.load(RccDiscordConfig.class);
+        } catch (Exception e) {
+            LOGGER.error("Failed to load config. Refusing to continue.", e);
+            return;
+        }
 
         try {
             this.client = new Client();

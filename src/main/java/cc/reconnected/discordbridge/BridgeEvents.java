@@ -1,6 +1,5 @@
 package cc.reconnected.discordbridge;
 
-import cc.reconnected.server.RccServer;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -11,7 +10,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 public class BridgeEvents {
-    public static void register(Bridge bridge) {
+    public static void register(RccDiscord bridge) {
         var client = bridge.getClient();
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             if (!client.isReady())
@@ -36,12 +35,12 @@ public class BridgeEvents {
         });
 
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
-            RccServer.LOGGER.info("Attempting rcc-discord force shutdown...");
+            RccDiscord.LOGGER.info("Attempting rcc-discord force shutdown...");
             try {
                 var jda = bridge.getClient().client();
                 jda.shutdownNow();
             } catch (Exception e) {
-                RccServer.LOGGER.error("Force disconnect rcc-bridge failure", e);
+                RccDiscord.LOGGER.error("Force disconnect rcc-bridge failure", e);
             }
         });
 
@@ -78,18 +77,18 @@ public class BridgeEvents {
                 return;
             var playerName = sender.getDisplayName().getString();
             var avatarUrl = Utils.getAvatarUrl(sender);
-            bridge.sendPlayerMessage(message.message(), playerName, avatarUrl);
+            bridge.sendPlayerMessage(message.getSignedContent(), playerName, avatarUrl);
         });
     }
 
     private static void updatePlayerCount(int count) {
-        if (!Bridge.CONFIG.usePresence())
+        if (!RccDiscord.CONFIG.usePresence)
             return;
 
         var text = "with " + count + " players!";
         if (count == 0) {
             text = "with no one :(";
         }
-        Bridge.getInstance().setStatus(OnlineStatus.ONLINE, Activity.playing(text));
+        RccDiscord.getInstance().setStatus(OnlineStatus.ONLINE, Activity.playing(text));
     }
 }

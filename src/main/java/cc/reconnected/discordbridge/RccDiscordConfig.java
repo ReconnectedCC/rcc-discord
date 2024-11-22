@@ -1,9 +1,9 @@
 package cc.reconnected.discordbridge;
 
-import io.wispforest.owo.config.annotation.Config;
+import cc.reconnected.library.config.Config;
 
-@Config(name = "rcc-discord-config", wrapperName = "DiscordConfig")
-public class DiscordConfigModel {
+@Config(RccDiscord.MOD_ID)
+public class RccDiscordConfig {
     public String token = "";
     public String name = "rcc-bridge";
     public String channelId = "00000";

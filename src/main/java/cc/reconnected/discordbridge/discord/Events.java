@@ -1,12 +1,12 @@
 package cc.reconnected.discordbridge.discord;
 
 import cc.reconnected.discordbridge.Colors;
+import cc.reconnected.discordbridge.RccDiscord;
 import cc.reconnected.discordbridge.events.DiscordMessageEvents;
-import cc.reconnected.discordbridge.Bridge;
 import cc.reconnected.discordbridge.ChatComponents;
 import cc.reconnected.discordbridge.parser.MentionNodeParser;
-import cc.reconnected.server.api.PlayerMeta;
-import cc.reconnected.server.parser.MarkdownParser;
+import cc.reconnected.library.data.PlayerMeta;
+import cc.reconnected.library.text.parser.MarkdownParser;
 import eu.pb4.placeholders.api.parsers.NodeParser;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -32,7 +32,7 @@ public class Events {
         try {
             messageDigest = MessageDigest.getInstance("SHA-256");
         } catch (NoSuchAlgorithmException e) {
-            Bridge.LOGGER.error("sha256 no longer exists :(", e);
+            RccDiscord.LOGGER.error("sha256 no longer exists :(", e);
             return true;
         }
 
@@ -54,7 +54,7 @@ public class Events {
     public void onMessageCreate(MessageReceivedEvent event) {
         var message = event.getMessage();
         var channel = message.getChannel();
-        if (!channel.getId().equals(Bridge.CONFIG.channelId()))
+        if (!channel.getId().equals(RccDiscord.CONFIG.channelId))
             return;
 
         var member = event.getMember();
@@ -70,7 +70,7 @@ public class Events {
     public void onMessageEdit(MessageUpdateEvent event) {
         var message = event.getMessage();
         var channel = message.getChannel();
-        if (!channel.getId().equals(Bridge.CONFIG.channelId()))
+        if (!channel.getId().equals(RccDiscord.CONFIG.channelId))
             return;
 
         var member = event.getMember();
@@ -154,7 +154,7 @@ public class Events {
             outputComponent = outputComponent.append(Component.text("(edited)", NamedTextColor.GRAY));
         }
 
-        Bridge.enqueueMessage(outputComponent);
+        RccDiscord.enqueueMessage(outputComponent);
     }
 
 
@@ -176,37 +176,37 @@ public class Events {
 
         var code = codeOption.getAsString();
 
-        if (!Bridge.linkCodes.containsKey(code)) {
+        if (!RccDiscord.linkCodes.containsKey(code)) {
             event.reply("Code not found! Run the `/discord link` command in-game to obtain a link code.")
                     .setEphemeral(true).queue();
             return;
         }
 
-        var player = Bridge.linkCodes.get(code);
+        var player = RccDiscord.linkCodes.get(code);
         var playerData = PlayerMeta.getPlayer(player);
 
-        Bridge.discordLinks.put(event.getUser().getId(), player.getUuid());
+        RccDiscord.discordLinks.put(event.getUser().getId(), player.getUuid());
         playerData.set(PlayerMeta.KEYS.discordId, event.getUser().getId()).join();
 
-        Bridge.getInstance().saveData();
+        RccDiscord.getInstance().saveData();
 
-        var client = Bridge.getInstance().getClient();
+        var client = RccDiscord.getInstance().getClient();
         var member = event.getMember();
         if (client.role() != null) {
             try {
                 client.guild().addRoleToMember(member, client.role()).reason("Linked via link code").queue();
             } catch (Exception e) {
-                Bridge.LOGGER.error("Could not add role to player", e);
+                RccDiscord.LOGGER.error("Could not add role to player", e);
             }
         }
 
         try {
             member.modifyNickname(playerData.getUsername()).reason("Linked via link code");
         } catch(Exception e) {
-            Bridge.LOGGER.error("Could not modify nickname", e);
+            RccDiscord.LOGGER.error("Could not modify nickname", e);
         }
 
-        Bridge.linkCodes.remove(code);
+        RccDiscord.linkCodes.remove(code);
 
         event.reply("Your Discord profile is now linked with **" + playerData.getUsername() + "**!")
                 .setEphemeral(true).queue();
@@ -223,7 +223,7 @@ public class Events {
     }
 
     private void onListCommand(SlashCommandInteractionEvent event) {
-        var list = Bridge.getInstance().getPlayerNames();
+        var list = RccDiscord.getInstance().getPlayerNames();
         String players;
         if (list.length == 0) {
             players = "*There are no players online*";

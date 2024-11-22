@@ -1,7 +1,7 @@
 package cc.reconnected.discordbridge.commands;
 
-import cc.reconnected.discordbridge.Bridge;
-import cc.reconnected.server.api.PlayerMeta;
+import cc.reconnected.discordbridge.RccDiscord;
+import cc.reconnected.library.data.PlayerMeta;
 import com.mojang.brigadier.CommandDispatcher;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import net.kyori.adventure.text.Component;
@@ -25,12 +25,12 @@ public class DiscordCommand {
                 .executes(context -> {
                     context.getSource().sendFeedback(() -> Text.empty()
                             .append(Text.literal("Join the Discord server via this invite link: "))
-                            .append(Text.literal(Bridge.CONFIG.inviteLink())
+                            .append(Text.literal(RccDiscord.CONFIG.inviteLink)
                                     .setStyle(Style.EMPTY
                                             .withColor(Formatting.BLUE)
                                             .withUnderline(true)
                                             .withHoverEvent(new net.minecraft.text.HoverEvent(net.minecraft.text.HoverEvent.Action.SHOW_TEXT, Text.of("Click to open invite")))
-                                            .withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.OPEN_URL, Bridge.CONFIG.inviteLink()))
+                                            .withClickEvent(new net.minecraft.text.ClickEvent(net.minecraft.text.ClickEvent.Action.OPEN_URL, RccDiscord.CONFIG.inviteLink))
                                     )
                             ).setStyle(Style.EMPTY.withColor(Formatting.GREEN)), false);
                     return 1;
@@ -49,7 +49,7 @@ public class DiscordCommand {
                             }
 
                             var code = generateLinkCode();
-                            Bridge.linkCodes.put(code, player);
+                            RccDiscord.linkCodes.put(code, player);
 
                             var text = Component.empty()
                                     .append(Component.text("Your profile is ready to be linked!"))
@@ -82,20 +82,20 @@ public class DiscordCommand {
                                 return 1;
                             }
 
-                            var client = Bridge.getInstance().getClient();
+                            var client = RccDiscord.getInstance().getClient();
                             if (client.role() != null) {
                                 var guild = client.guild();
                                 var member = guild.getMemberById(snowflake);
                                 try {
                                     guild.removeRoleFromMember(member, client.role()).queue();
                                 } catch (InsufficientPermissionException e) {
-                                    Bridge.LOGGER.error("Could not remove role from player", e);
+                                    RccDiscord.LOGGER.error("Could not remove role from player", e);
                                 }
                             }
 
-                            Bridge.discordLinks.remove(snowflake);
+                            RccDiscord.discordLinks.remove(snowflake);
                             playerData.delete(PlayerMeta.KEYS.discordId).join();
-                            Bridge.getInstance().saveData();
+                            RccDiscord.getInstance().saveData();
 
                             context.getSource().sendFeedback(() -> Text.literal("You have unlinked your Discord profile!").setStyle(Style.EMPTY.withColor(Formatting.GREEN)), false);
 
@@ -109,7 +109,7 @@ public class DiscordCommand {
         String code;
         do {
             code = String.format("%06d", randomInt(0, 999999));
-        } while (Bridge.linkCodes.containsKey(code));
+        } while (RccDiscord.linkCodes.containsKey(code));
 
         return code;
     }

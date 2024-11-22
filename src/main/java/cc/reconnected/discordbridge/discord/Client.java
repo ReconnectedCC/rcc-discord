@@ -1,9 +1,9 @@
 package cc.reconnected.discordbridge.discord;
 
 
+import cc.reconnected.discordbridge.RccDiscord;
 import club.minnced.discord.webhook.WebhookClient;
 import club.minnced.discord.webhook.WebhookClientBuilder;
-import cc.reconnected.discordbridge.Bridge;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Guild;
@@ -74,7 +74,7 @@ public class Client {
 
     private void initialize() {
         client = JDABuilder
-                .create(Bridge.CONFIG.token(), EnumSet.of(GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT))
+                .create(RccDiscord.CONFIG.token, EnumSet.of(GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT))
                 .disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.EMOJI, CacheFlag.STICKER, CacheFlag.CLIENT_STATUS, CacheFlag.ONLINE_STATUS, CacheFlag.SCHEDULED_EVENTS)
                 .addEventListeners(new DiscordEvents())
                 .build();
@@ -84,20 +84,20 @@ public class Client {
         @Override
         public void onReady(@NotNull ReadyEvent event) {
             final var self = client.getSelfUser();
-            Bridge.LOGGER.info("Logged in as {}", self.getAsTag());
+            RccDiscord.LOGGER.info("Logged in as {}", self.getAsTag());
 
-            chatChannel = client.getTextChannelById(Bridge.CONFIG.channelId());
+            chatChannel = client.getTextChannelById(RccDiscord.CONFIG.channelId);
             if (chatChannel == null) {
-                Bridge.LOGGER.error("Channel not found! Set an existing channel ID that I can see!");
+                RccDiscord.LOGGER.error("Channel not found! Set an existing channel ID that I can see!");
                 client.shutdown();
                 return;
             }
 
             guild = chatChannel.getGuild();
 
-            role = guild.getRoleById(Bridge.CONFIG.roleId());
+            role = guild.getRoleById(RccDiscord.CONFIG.roleId);
 
-            var webhookName = Bridge.CONFIG.name();
+            var webhookName = RccDiscord.CONFIG.name;
             var webhooks = chatChannel.retrieveWebhooks().complete();
 
             webhooks.stream()
@@ -109,7 +109,7 @@ public class Client {
             }
 
             if (webhook == null) {
-                Bridge.LOGGER.error("Attempt to create a webhook failed! Please create a WebHook by the name {} and restart the server", webhookName);
+                RccDiscord.LOGGER.error("Attempt to create a webhook failed! Please create a WebHook by the name {} and restart the server", webhookName);
                 client.shutdown();
                 return;
             }
@@ -138,7 +138,7 @@ public class Client {
 
         @Override
         public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
-            if(Bridge.CONFIG.enableSlashCommands())
+            if(RccDiscord.CONFIG.enableSlashCommands)
                 events.onSlashCommandInteraction(event);
         }
     }

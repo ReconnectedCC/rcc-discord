@@ -1,7 +1,6 @@
 package cc.reconnected.discordbridge;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.ComponentLike;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -13,7 +12,7 @@ import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
 
 public class ChatComponents {
-    public static Component discordMessagePrefix = MiniMessage.miniMessage().deserialize(Bridge.CONFIG.prefix());
+    public static Component discordMessagePrefix = MiniMessage.miniMessage().deserialize(RccDiscord.CONFIG.prefix);
 
     public static final Component mentionIcon = Component
             .text("@")
@@ -38,7 +37,7 @@ public class ChatComponents {
     }
 
     public static Component makeReplyHeader(Component referenceUser, Component referenceMessage) {
-        return MiniMessage.miniMessage().deserialize(Bridge.CONFIG.reply(),
+        return MiniMessage.miniMessage().deserialize(RccDiscord.CONFIG.reply,
                 Placeholder.component("reference_username", referenceUser),
                 Placeholder.component("reference_message", referenceMessage)
         );
@@ -47,7 +46,7 @@ public class ChatComponents {
     public static Component makeMessage(Component username, @Nullable Component reply, Component message) {
         if (reply == null)
             reply = Component.empty();
-        return MiniMessage.miniMessage().deserialize(Bridge.CONFIG.messageFormat(),
+        return MiniMessage.miniMessage().deserialize(RccDiscord.CONFIG.messageFormat,
                 Placeholder.component("prefix", discordMessagePrefix),
                 Placeholder.component("username", username),
                 Placeholder.component("reply", reply),

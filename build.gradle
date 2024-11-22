@@ -29,7 +29,6 @@ repositories {
     // for more information about repositories.
     mavenCentral()
 
-    maven { url 'https://maven.wispforest.io' }
     maven { url 'https://maven.reconnected.cc/releases' }
     maven { url 'https://maven.nucleoid.xyz' }
 
@@ -49,8 +48,7 @@ dependencies {
     // Fabric API. This is technically optional, but you probably want it anyway.
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    annotationProcessor modImplementation("io.wispforest:owo-lib:${project.owo_version}")
-    include "io.wispforest:owo-sentinel:${project.owo_version}"
+    modImplementation "cc.reconnected:rcc-library:${project.rcclibrary_version}"
 
     include implementation("net.dv8tion:JDA:${project.jda_version}") {
         exclude module: 'opus-java'
@@ -71,8 +69,6 @@ dependencies {
 
     include modImplementation("net.kyori:adventure-platform-fabric:${project.kyori_adventure_fabric_version}")
     modImplementation include("eu.pb4:placeholder-api:${project.placeholderapi_version}")
-
-    modImplementation "cc.reconnected:rcc-server:${project.rccserver_version}"
 }
 
 processResources {
