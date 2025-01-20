@@ -129,6 +129,15 @@ public class RccDiscord implements ModInitializer {
                 discordLinks = new ConcurrentHashMap<>();
             }
         });
+
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            client.client().shutdown();
+        });
+
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            // force shutdown
+            client.client().shutdownNow();
+        });
     }
 
     public static void enqueueMessage(Component component) {
