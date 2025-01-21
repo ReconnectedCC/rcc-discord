@@ -131,13 +131,23 @@ public class RccDiscord implements ModInitializer {
         });
 
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
-            client.client().shutdown();
+            // nuke the client
+            shutdownNow();
         });
+    }
 
-        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
-            // force shutdown
-            client.client().shutdownNow();
-        });
+    public void shutdown() {
+        client.client().shutdown();
+        var httpClient = client.client().getHttpClient();
+        httpClient.connectionPool().evictAll();
+        httpClient.dispatcher().executorService().shutdown();
+    }
+
+    public void shutdownNow() {
+        client.client().shutdownNow();
+        var httpClient = client.client().getHttpClient();
+        httpClient.connectionPool().evictAll();
+        httpClient.dispatcher().executorService().shutdownNow();
     }
 
     public static void enqueueMessage(Component component) {
