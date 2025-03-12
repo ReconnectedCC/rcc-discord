@@ -11,6 +11,7 @@ public class RccDiscordConfig {
     public String avatarApiUrl = "https://mc-heads.net/head/{{uuid}}";
     public String avatarApiThumbnailUrl = "https://mc-heads.net/head/{{uuid}}/32";
     public String inviteLink = "https://discord.gg/myinvite";
+    public String serverAvatarUrl = "";
 
     // https://docs.advntr.dev/minimessage/format.html
 
