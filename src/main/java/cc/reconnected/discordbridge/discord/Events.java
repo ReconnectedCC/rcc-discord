@@ -134,7 +134,7 @@ public class Events {
         var parser = NodeParser.merge(new MentionNodeParser(message), MarkdownParser.defaultParser);
         var mdContentVan = parser.parseNode(messageContent).toText();
 
-        var json = Text.Serializer.toJson(mdContentVan);
+        var json = Text.Serialization.toJsonString(mdContentVan, RccDiscord.getInstance().getServer().getRegistryManager());
         var mdContent = JSONComponentSerializer.json().deserialize(json);
 
         messageComponent = messageComponent.append(mdContent);

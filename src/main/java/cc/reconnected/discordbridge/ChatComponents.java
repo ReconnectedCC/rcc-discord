@@ -64,6 +64,7 @@ public class ChatComponents {
     }
 
     public static Text toText(Component component) {
-        return Text.Serializer.fromJson(JSONComponentSerializer.json().serialize(component));
+        var server = RccDiscord.getInstance().getServer();
+        return Text.Serialization.fromJson(JSONComponentSerializer.json().serialize(component), server.getRegistryManager());
     }
 }

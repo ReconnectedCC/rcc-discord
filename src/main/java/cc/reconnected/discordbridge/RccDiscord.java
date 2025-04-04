@@ -60,6 +60,10 @@ public class RccDiscord implements ModInitializer {
         return client;
     }
 
+    public MinecraftServer getServer() {
+        return mcServer;
+    }
+
     public static final HashMap<String, ServerPlayerEntity> linkCodes = new HashMap<>();
 
     /**
