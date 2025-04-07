@@ -7,13 +7,14 @@ import cc.reconnected.discordbridge.ChatComponents;
 import cc.reconnected.discordbridge.parser.MentionNodeParser;
 import cc.reconnected.library.data.PlayerMeta;
 import cc.reconnected.library.text.parser.MarkdownParser;
+import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
+import discord4j.core.event.domain.message.MessageCreateEvent;
+import discord4j.core.event.domain.message.MessageUpdateEvent;
+import discord4j.core.object.entity.Member;
+import discord4j.core.object.entity.Message;
+import discord4j.core.spec.GuildMemberEditSpec;
+import discord4j.discordjson.possible.Possible;
 import eu.pb4.placeholders.api.parsers.NodeParser;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageType;
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.json.JSONComponentSerializer;
@@ -23,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
+import java.util.Optional;
 
 public class Events {
     private final HashMap<String, String> messageCache = new HashMap<>();
@@ -51,40 +53,42 @@ public class Events {
         return false;
     }
 
-    public void onMessageCreate(MessageReceivedEvent event) {
+    public void onMessageCreate(MessageCreateEvent event) {
         var message = event.getMessage();
-        var channel = message.getChannel();
+        var channel = message.getChannel().block();
         if (!channel.getId().equals(RccDiscord.CONFIG.channelId))
             return;
 
-        var member = event.getMember();
-        if (member == null)
+        var memberOpt = event.getMember();
+        if (memberOpt.isEmpty())
             return;
 
-        if (member.getUser().isBot())
+        var member = memberOpt.get();
+        if (member.isBot())
             return;
 
         buildMessage(message, member, false);
     }
 
     public void onMessageEdit(MessageUpdateEvent event) {
-        var message = event.getMessage();
-        var channel = message.getChannel();
+        var message = event.getMessage().block();
+        var channel = message.getChannel().block();
         if (!channel.getId().equals(RccDiscord.CONFIG.channelId))
             return;
 
-        var member = event.getMember();
-        if (member == null)
+        var memberOpt = message.getAuthorAsMember().blockOptional();
+        if (memberOpt.isEmpty())
             return;
 
-        if (member.getUser().isBot())
+        var member = memberOpt.get();
+        if (member.isBot())
             return;
 
         buildMessage(message, member, true);
     }
 
     public void buildMessage(Message message, Member member, boolean isEdited) {
-        var isActuallyEdited = isActuallyEdited(message.getId(), message.getContentRaw());
+        var isActuallyEdited = isActuallyEdited(message.getId().asString(), message.getContent());
         if (isEdited && !isActuallyEdited) {
             return;
         }
@@ -98,37 +102,37 @@ public class Events {
 
         int memberColor = NamedTextColor.WHITE.value();
 
-        var nullableMemberColor = member.getColor();
-        if (nullableMemberColor != null) {
+        var nullableMemberColor = member.getColor().block();
+        if (nullableMemberColor.getRGB() != 0) {
             memberColor = nullableMemberColor.getRGB();
         }
-        var memberComponent = ChatComponents.makeUser(member.getEffectiveName(), member.getAsMention() + ": ", memberColor, Component.empty());
+        var memberComponent = ChatComponents.makeUser(member.getDisplayName(), member.getMention() + ": ", memberColor, Component.empty());
         Component replyComponent = null;
 
-        if (message.getType() == MessageType.INLINE_REPLY && message.getReferencedMessage() != null) {
+        if (message.getType() == Message.Type.REPLY && message.getReferencedMessage().isPresent()) {
             var referencedMessage = message.getReferencedMessage();
             Component referenceMemberComponent;
-            var referenceMember = referencedMessage.getMember();
-            if (referenceMember != null) {
+            var referenceMember = referencedMessage.get().getAuthorAsMember().blockOptional();
+            if (referenceMember.isPresent()) {
                 var referenceMemberColor = NamedTextColor.WHITE.value();
-                var nullableReferenceMemberColor = referenceMember.getColor();
-                if (nullableReferenceMemberColor != null) {
+                var nullableReferenceMemberColor = referenceMember.get().getColor().block();
+                if (nullableReferenceMemberColor.getRGB() != 0) {
                     referenceMemberColor = nullableReferenceMemberColor.getRGB();
                 }
-                referenceMemberComponent = ChatComponents.makeUser(referenceMember.getEffectiveName(), referenceMember.getAsMention() + ": ", referenceMemberColor, Component.empty());
-            } else if (referencedMessage.getMember() != null) {
-                var referenceAuthor = referencedMessage.getAuthor();
-                referenceMemberComponent = ChatComponents.makeUser(referenceAuthor.getName(), referenceAuthor.getAsMention() + ": ", NamedTextColor.WHITE.value(), Component.empty());
+                referenceMemberComponent = ChatComponents.makeUser(referenceMember.get().getDisplayName(), referenceMember.get().getMention() + ": ", referenceMemberColor, Component.empty());
+            } else if (referencedMessage.get().getAuthorAsMember().blockOptional().isPresent()) {
+                var referenceAuthor = referencedMessage.get().getAuthorAsMember().block();
+                referenceMemberComponent = ChatComponents.makeUser(referenceAuthor.getDisplayName(), referenceAuthor.getMention() + ": ", NamedTextColor.WHITE.value(), Component.empty());
             } else {
                 //var referenceData = referencedMessage();
-                var referenceAuthor = referencedMessage.getAuthor();
-                referenceMemberComponent = ChatComponents.makeUser(referenceAuthor.getName(), referenceAuthor.getName() + ": ", NamedTextColor.WHITE.value(), Component.empty());
+                var referenceAuthor = referencedMessage.get().getAuthor().get();
+                referenceMemberComponent = ChatComponents.makeUser(referenceAuthor.getUsername(), referenceAuthor.getUsername() + ": ", NamedTextColor.WHITE.value(), Component.empty());
             }
 
-            replyComponent = ChatComponents.makeReplyHeader(referenceMemberComponent, Component.text(referencedMessage.getContentDisplay()));
+            replyComponent = ChatComponents.makeReplyHeader(referenceMemberComponent, Component.text(referencedMessage.get().getContent()));
         }
 
-        var messageContent = message.getContentRaw();
+        var messageContent = message.getContent();
         Component messageComponent = Component.empty();
 
         var parser = NodeParser.merge(new MentionNodeParser(message), MarkdownParser.defaultParser);
@@ -144,7 +148,7 @@ public class Events {
             messageComponent = messageComponent.appendSpace();
         }
         for (var attachment : attachments) {
-            messageComponent = messageComponent.append(ChatComponents.makeAttachment(attachment.getFileName(), attachment.getUrl()));
+            messageComponent = messageComponent.append(ChatComponents.makeAttachment(attachment.getFilename(), attachment.getUrl()));
             messageComponent = messageComponent.appendSpace();
         }
 
@@ -158,63 +162,64 @@ public class Events {
     }
 
 
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
-        switch (event.getName()) {
+    public void onChatInputInteraction(ChatInputInteractionEvent event) {
+        switch (event.getCommandName()) {
             case "link" -> onLinkCommand(event);
             case "list" -> onListCommand(event);
         }
 
     }
 
-    private void onLinkCommand(SlashCommandInteractionEvent event) {
+    private void onLinkCommand(ChatInputInteractionEvent event) {
         var codeOption = event.getOption("code");
-        if (codeOption == null) {
+        if (codeOption.isEmpty()) {
             event.reply("Please provide a link code via the `/discord link` command in-game.")
-                    .setEphemeral(true).queue();
+                    .withEphemeral(true).subscribe();
             return;
         }
 
-        var code = codeOption.getAsString();
+        var code = codeOption.get().getValue().get().asString();
 
         if (!RccDiscord.linkCodes.containsKey(code)) {
             event.reply("Code not found! Run the `/discord link` command in-game to obtain a link code.")
-                    .setEphemeral(true).queue();
+                    .withEphemeral(true).subscribe();
             return;
         }
 
         var player = RccDiscord.linkCodes.get(code);
         var playerData = PlayerMeta.getPlayer(player);
 
-        RccDiscord.discordLinks.put(event.getUser().getId(), player.getUuid());
-        playerData.set(PlayerMeta.KEYS.discordId, event.getUser().getId()).join();
+        var interaction = event.getInteraction();
+        RccDiscord.discordLinks.put(interaction.getUser().getId().asString(), player.getUuid());
+        playerData.set(PlayerMeta.KEYS.discordId, interaction.getUser().getId().asString()).join();
 
         RccDiscord.getInstance().saveData();
 
         var client = RccDiscord.getInstance().getClient();
-        var member = event.getMember();
-        if (client.role() != null) {
-            try {
-                client.guild().addRoleToMember(member, client.role()).reason("Linked via link code").queue();
-            } catch (Exception e) {
-                RccDiscord.LOGGER.error("Could not add role to player", e);
-            }
-        }
-
+        var member = interaction.getMember().get();
+        var service = client.client().getRestClient().getGuildService();
         try {
-            member.modifyNickname(playerData.getUsername()).reason("Linked via link code");
+            var request = GuildMemberEditSpec.builder()
+                    .addRole(client.role().getId())
+                    .nickname(Possible.of(Optional.ofNullable(playerData.getUsername())))
+                    .reason("Linked via link code")
+                    .build();
+
+            service.modifyGuildMember(member.getGuildId().asLong(), member.getId().asLong(), request.asRequest(), "Linked via link code")
+                    .subscribe();
         } catch(Exception e) {
-            RccDiscord.LOGGER.error("Could not modify nickname", e);
+            RccDiscord.LOGGER.error("Could not update member", e);
         }
 
         RccDiscord.linkCodes.remove(code);
 
         event.reply("Your Discord profile is now linked with **" + playerData.getUsername() + "**!")
-                .setEphemeral(true).queue();
+                .withEphemeral(true).subscribe();
 
 
         var text = Component.empty()
                 .append(Component.text("You linked your profile to "))
-                .append(Component.text(member.getEffectiveName())
+                .append(Component.text(member.getDisplayName())
                         .color(Colors.BLURPLE))
                 .append(Component.text(" on Discord!"))
                 .color(NamedTextColor.GREEN);
@@ -222,7 +227,7 @@ public class Events {
         player.sendMessage(text);
     }
 
-    private void onListCommand(SlashCommandInteractionEvent event) {
+    private void onListCommand(ChatInputInteractionEvent event) {
         var list = RccDiscord.getInstance().getPlayerNames();
         String players;
         if (list.length == 0) {
@@ -230,6 +235,6 @@ public class Events {
         } else {
             players = "**Online players**: " + String.join(", ", list);
         }
-        event.reply(players).setEphemeral(true).queue();
+        event.reply(players).withEphemeral(true).subscribe();
     }
 }

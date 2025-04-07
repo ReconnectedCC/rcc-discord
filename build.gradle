@@ -51,26 +51,14 @@ dependencies {
 
     modImplementation "cc.reconnected:rcc-library:${project.rcclibrary_version}"
 
-    include implementation("net.dv8tion:JDA:${project.jda_version}") {
-        exclude module: 'opus-java'
-    }
-    include implementation("club.minnced:discord-webhooks:${project.webhooks_version}")
-
-    // JDA dependencies
-
-    include 'org.json:json:20231013'
-    include "com.squareup.okio:okio:3.10.2"
-    include "com.squareup.okhttp3:okhttp:4.12.0"
-    include "org.apache.commons:commons-collections4:4.4"
-    include "org.jetbrains.kotlin:kotlin-stdlib:1.6.21"
-    include "com.neovisionaries:nv-websocket-client:2.14"
-    include "net.sf.trove4j:trove4j:3.0.3"
-    include 'com.fasterxml.jackson.core:jackson-databind:2.13.4.1'
-    include "com.fasterxml.jackson.core:jackson-annotations:2.13.1"
-    include "com.fasterxml.jackson.core:jackson-core:2.13.1"
-
     include modImplementation("net.kyori:adventure-platform-fabric:${project.kyori_adventure_fabric_version}")
-    modImplementation include("eu.pb4:placeholder-api:${project.placeholderapi_version}")
+    include modImplementation("eu.pb4:placeholder-api:${project.placeholderapi_version}")
+
+    include implementation("com.discord4j:discord4j-core:$discord4j_version")
+    include "com.discord4j:discord-json:1.7.13"
+    include "com.discord4j:discord4j-common:$discord4j_version"
+    include "com.discord4j:discord4j-gateway:3.0.16"
+    include "com.discord4j:discord4j-rest:$discord4j_version"
 }
 
 processResources {

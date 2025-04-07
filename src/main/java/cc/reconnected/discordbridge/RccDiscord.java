@@ -3,14 +3,14 @@ package cc.reconnected.discordbridge;
 import cc.reconnected.discordbridge.commands.DiscordCommand;
 import cc.reconnected.discordbridge.discord.Client;
 import cc.reconnected.library.config.ConfigManager;
-import club.minnced.discord.webhook.send.AllowedMentions;
-import club.minnced.discord.webhook.send.WebhookEmbed;
-import club.minnced.discord.webhook.send.WebhookEmbedBuilder;
-import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import net.dv8tion.jda.api.OnlineStatus;
-import net.dv8tion.jda.api.entities.Activity;
+import discord4j.core.object.presence.ClientActivity;
+import discord4j.core.object.presence.ClientPresence;
+import discord4j.core.object.presence.Status;
+import discord4j.core.spec.EmbedCreateSpec;
+import discord4j.rest.util.AllowedMentions;
+import discord4j.rest.util.Color;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -140,23 +140,8 @@ public class RccDiscord implements ModInitializer {
         });
     }
 
-    public void shutdown() {
-        var httpClient = client.client().getHttpClient();
-        client.client().shutdown();
-        httpClient.connectionPool().evictAll();
-        httpClient.dispatcher().executorService().shutdown();
-    }
-
     public void shutdownNow() {
-        var httpClient = client.client().getHttpClient();
-        client.client().shutdownNow();
-        httpClient.connectionPool().evictAll();
-        httpClient.dispatcher().executorService().shutdownNow();
-        try {
-        client.client().awaitShutdown();
-        } catch (InterruptedException e) {
-            LOGGER.error("Error shutting down Discord client", e);
-        }
+        client.client().logout().subscribe();
     }
 
     public static void enqueueMessage(Component component) {
@@ -166,46 +151,60 @@ public class RccDiscord implements ModInitializer {
     public void sendServerStatus(String message, int color) {
         if (!client.isReady())
             return;
-        var embed = new WebhookEmbedBuilder()
-                .setDescription(message)
-                .setColor(color)
-                .build();
-        client.webhookClient().send(embed);
+        try {
+            var embed = EmbedCreateSpec.builder()
+                    .description(message)
+                    .color(Color.of(color))
+                    .build();
+
+            client.webhook().execute()
+                    .withEmbeds(embed)
+                    .withAllowedMentions(AllowedMentions.suppressEveryone())
+                    .subscribe();
+        } catch (Exception e) {
+            LOGGER.error("Error while sending message to webhook", e);
+        }
     }
 
     public void sendPlayerStatus(String message, int color, String avatarUrl) {
         if (!client.isReady())
             return;
-        var embed = new WebhookEmbedBuilder()
-                .setAuthor(new WebhookEmbed.EmbedAuthor(message, avatarUrl, null))
-                .setColor(color)
-                .build();
-        client.webhookClient().send(embed);
+        try {
+            var embed = EmbedCreateSpec.builder()
+                    .author(message, null, avatarUrl)
+                    .color(Color.of(color))
+                    .build();
+
+            client.webhook().execute()
+                    .withEmbeds(embed)
+                    .withAllowedMentions(AllowedMentions.suppressEveryone())
+                    .subscribe();
+        } catch (Exception e) {
+            LOGGER.error("Error while sending message to webhook", e);
+        }
     }
 
     public void sendPlayerMessage(String message, String name, String avatarUrl) {
         if (!client.isReady())
             return;
-        var webhookMessage = new WebhookMessageBuilder()
-                .setAvatarUrl(avatarUrl)
-                .setUsername(name)
-                .setContent(message)
-                .setAllowedMentions(
-                        new AllowedMentions()
-                                .withParseUsers(true)
-                                .withParseRoles(true)
-                                .withParseEveryone(false)
-                )
-                .build();
-        client.webhookClient().send(webhookMessage);
+        try {
+            client.webhook().execute()
+                    .withAvatarUrl(avatarUrl)
+                    .withUsername(name)
+                    .withContent(message)
+                    .withAllowedMentions(AllowedMentions.suppressEveryone())
+                    .subscribe();
+        } catch (Exception e) {
+            LOGGER.error("Error while sending message to webhook", e);
+        }
     }
 
     public void setStatus(String string) {
-        setStatus(OnlineStatus.ONLINE, Activity.playing(string));
+        setStatus(Status.ONLINE, ClientActivity.playing(string));
     }
 
-    public void setStatus(OnlineStatus status, Activity activity) {
-        client.client().getPresence().setPresence(status, activity);
+    public void setStatus(Status status, ClientActivity activity) {
+        client.client().updatePresence(ClientPresence.of(status, activity)).subscribe();
     }
 
     public void saveData() {

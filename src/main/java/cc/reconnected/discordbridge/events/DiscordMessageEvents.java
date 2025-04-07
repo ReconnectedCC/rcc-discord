@@ -1,7 +1,7 @@
 package cc.reconnected.discordbridge.events;
 
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
+import discord4j.core.object.entity.Member;
+import discord4j.core.object.entity.Message;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
 

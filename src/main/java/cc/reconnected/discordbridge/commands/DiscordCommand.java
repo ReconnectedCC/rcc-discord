@@ -3,7 +3,7 @@ package cc.reconnected.discordbridge.commands;
 import cc.reconnected.discordbridge.RccDiscord;
 import cc.reconnected.library.data.PlayerMeta;
 import com.mojang.brigadier.CommandDispatcher;
-import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
+import discord4j.common.util.Snowflake;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -85,10 +85,10 @@ public class DiscordCommand {
                             var client = RccDiscord.getInstance().getClient();
                             if (client.role() != null) {
                                 var guild = client.guild();
-                                var member = guild.getMemberById(snowflake);
+                                var member = guild.getMemberById(Snowflake.of(snowflake)).block();
                                 try {
-                                    guild.removeRoleFromMember(member, client.role()).queue();
-                                } catch (InsufficientPermissionException e) {
+                                    member.removeRole(client.role().getId(), "Unlinked").subscribe();
+                                } catch (Exception e) {
                                     RccDiscord.LOGGER.error("Could not remove role from player", e);
                                 }
                             }

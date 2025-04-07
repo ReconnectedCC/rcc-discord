@@ -2,10 +2,11 @@ package cc.reconnected.discordbridge.parser;
 
 import cc.reconnected.discordbridge.ChatComponents;
 import cc.reconnected.discordbridge.Colors;
+import discord4j.common.util.Snowflake;
+import discord4j.core.object.entity.Message;
+import discord4j.core.object.entity.channel.Channel;
 import eu.pb4.placeholders.api.node.TextNode;
 import eu.pb4.placeholders.api.parsers.NodeParser;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minecraft.text.Text;
@@ -28,28 +29,29 @@ public class MentionNodeParser implements NodeParser {
     public List<TextNode> parseMentions() {
         var list = new ArrayList<TextNode>();
 
-        var messageContent = message.getContentRaw();
+        var messageContent = message.getContent();
 
         var splitContent = splitMessage(messageContent);
-        var memberMentions = message.getMentions().getMembers();
-        var roleMentions = message.getMentions().getRoles();
+        var memberMentions = message.getMemberMentions();
+        var roleMentions = message.getRoleMentions().buffer().blockLast();
         for (var part : splitContent) {
             if (part.matches(mentionPattern.pattern())) {
                 var matcher = integerPattern.matcher(part);
                 if (matcher.find()) {
                     var snowflakeId = matcher.group();
+                    var snowflake = Snowflake.of(snowflakeId);
                     if (part.startsWith("<@&")) { // Role mention
-                        var mentionedRoleOpt = roleMentions.stream().filter(p -> p.getId().equals(snowflakeId)).findFirst();
+                        var mentionedRoleOpt = roleMentions.stream().filter(p -> p.getId().equals(snowflake)).findFirst();
                         if (mentionedRoleOpt.isPresent()) {
                             var mentionedRole = mentionedRoleOpt.get();
-                            int color = mentionedRole.getColorRaw();
+                            int color = mentionedRole.getColor().getRGB();
                             if (color == 0) {
                                 color = 0x99aab5;
                             }
 
                             list.add(toTextNode(ChatComponents.makeUser(
                                     mentionedRole.getName(),
-                                    mentionedRole.getAsMention() + ": ",
+                                    mentionedRole.getMention() + ": ",
                                     color,
                                     ChatComponents.mentionIcon
                             )));
@@ -66,8 +68,8 @@ public class MentionNodeParser implements NodeParser {
                         if (mentionedOpt.isPresent()) {
                             var mentioned = mentionedOpt.get();
                             list.add(toTextNode(ChatComponents.makeUser(
-                                    mentioned.getEffectiveName(),
-                                    mentioned.getAsMention() + ": ",
+                                    mentioned.getDisplayName(),
+                                    mentioned.getMention() + ": ",
                                     Colors.MENTION.value(),
                                     ChatComponents.mentionIcon
                             )));
@@ -80,13 +82,11 @@ public class MentionNodeParser implements NodeParser {
                             )));
                         }
                     } else if (part.startsWith("<#")) { // Channel mention
-                        var mentionedChannel = message.getJDA().getGuildChannelById(snowflakeId);
-                        if (mentionedChannel != null
-                                && ChannelType.guildTypes().contains(mentionedChannel.getType())) {
-
+                        var mentionedChannel = message.getGuild().block().getChannelById(Snowflake.of(snowflakeId)).blockOptional();
+                        if (mentionedChannel.isPresent()) {
                             list.add(toTextNode(ChatComponents.makeUser(
-                                    mentionedChannel.getName(),
-                                    mentionedChannel.getAsMention() + ": ",
+                                    mentionedChannel.get().getName(),
+                                    mentionedChannel.get().getMention() + ": ",
                                     Colors.MENTION.value(),
                                     ChatComponents.channelIcon
                             )));

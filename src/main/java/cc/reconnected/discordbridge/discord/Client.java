@@ -2,41 +2,42 @@ package cc.reconnected.discordbridge.discord;
 
 
 import cc.reconnected.discordbridge.RccDiscord;
-import club.minnced.discord.webhook.WebhookClient;
-import club.minnced.discord.webhook.WebhookClientBuilder;
-import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.JDABuilder;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.entities.Webhook;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
-import net.dv8tion.jda.api.events.session.ReadyEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.Commands;
-import net.dv8tion.jda.api.requests.GatewayIntent;
-import net.dv8tion.jda.api.utils.cache.CacheFlag;
-import org.jetbrains.annotations.NotNull;
+import discord4j.common.util.Snowflake;
+import discord4j.core.DiscordClientBuilder;
+import discord4j.core.GatewayDiscordClient;
+import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
+import discord4j.core.event.domain.lifecycle.ReadyEvent;
+import discord4j.core.event.domain.message.MessageCreateEvent;
+import discord4j.core.event.domain.message.MessageUpdateEvent;
+import discord4j.core.object.command.ApplicationCommandOption;
+import discord4j.core.object.entity.Guild;
+import discord4j.core.object.entity.Role;
+import discord4j.core.object.entity.Webhook;
+import discord4j.core.object.entity.channel.Channel;
+import discord4j.core.object.entity.channel.TextChannel;
+import discord4j.discordjson.json.ApplicationCommandOptionData;
+import discord4j.discordjson.json.ApplicationCommandRequest;
+import discord4j.gateway.intent.Intent;
+import discord4j.gateway.intent.IntentSet;
+import discord4j.rest.interaction.GuildCommandRegistrar;
 import org.jetbrains.annotations.Nullable;
+import reactor.core.publisher.Mono;
 
-import java.util.EnumSet;
+import java.util.List;
 
 public class Client {
+    public Snowflake channelId;
     private TextChannel chatChannel;
     private Webhook webhook;
-    //private GatewayDiscordClient client;
-    private JDA client;
+    private GatewayDiscordClient client;
     private final Events events = new Events();
     private Guild guild;
     @Nullable
     private Role role = null;
-    private WebhookClient webhookClient;
     private boolean isReady = false;
 
     public Client() {
+        channelId = Snowflake.of(RccDiscord.CONFIG.channelId);
         initialize();
     }
 
@@ -48,11 +49,7 @@ public class Client {
         return webhook;
     }
 
-    public WebhookClient webhookClient() {
-        return webhookClient;
-    }
-
-    public JDA client() {
+    public GatewayDiscordClient client() {
         return client;
     }
 
@@ -73,73 +70,70 @@ public class Client {
     }
 
     private void initialize() {
-        client = JDABuilder
-                .create(RccDiscord.CONFIG.token, EnumSet.of(GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT))
-                .disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.EMOJI, CacheFlag.STICKER, CacheFlag.CLIENT_STATUS, CacheFlag.ONLINE_STATUS, CacheFlag.SCHEDULED_EVENTS)
-                .addEventListeners(new DiscordEvents())
-                .build();
-    }
+        var publisher = DiscordClientBuilder.create(RccDiscord.CONFIG.token)
+                .build()
+                .gateway()
+                .setEnabledIntents(IntentSet.of(
+                        Intent.MESSAGE_CONTENT,
+                        Intent.GUILD_MESSAGES,
+                        Intent.GUILD_MEMBERS
+                ))
+                .login();
 
-    private class DiscordEvents extends ListenerAdapter {
-        @Override
-        public void onReady(@NotNull ReadyEvent event) {
-            final var self = client.getSelfUser();
-            RccDiscord.LOGGER.info("Logged in as {}", self.getAsTag());
+        publisher.flatMap(client -> {
+            this.client = client;
 
-            chatChannel = client.getTextChannelById(RccDiscord.CONFIG.channelId);
-            if (chatChannel == null) {
-                RccDiscord.LOGGER.error("Channel not found! Set an existing channel ID that I can see!");
-                client.shutdown();
-                return;
-            }
+            client.on(ReadyEvent.class).subscribe(event -> {
+                final var self = event.getSelf();
+                RccDiscord.LOGGER.info("Logged in as {}", self.getTag());
 
-            guild = chatChannel.getGuild();
+                var channel = client.getChannelById(channelId).block();
+                if (channel.getType() != Channel.Type.GUILD_TEXT) {
+                    throw new IllegalArgumentException("Channel is not a guild text");
+                }
 
-            role = guild.getRoleById(RccDiscord.CONFIG.roleId);
+                chatChannel = (TextChannel) channel;
+                guild = chatChannel.getGuild().block();
+                webhook = chatChannel.getWebhooks()
+                        .filter(wh -> wh.getName()
+                                .get().equals(RccDiscord.CONFIG.name))
+                        .singleOrEmpty().block();
+                if (webhook == null) {
+                    webhook = chatChannel.createWebhook(RccDiscord.CONFIG.name).block();
+                }
 
-            var webhookName = RccDiscord.CONFIG.name;
-            var webhooks = chatChannel.retrieveWebhooks().complete();
+                role = guild.getRoleById(Snowflake.of(RccDiscord.CONFIG.roleId)).block();
 
-            webhooks.stream()
-                    .filter((wh) -> wh.getName().equals(webhookName))
-                    .findFirst()
-                    .ifPresent((wh) -> webhook = wh);
-            if (webhook == null) {
-                webhook = chatChannel.createWebhook(webhookName).complete();
-            }
+                var linkCommand = ApplicationCommandRequest.builder()
+                        .name("link")
+                        .description("Link your Minecraft profile with Discord.")
+                        .addOption(ApplicationCommandOptionData.builder()
+                                .name("code")
+                                .description("Linking code")
+                                .type(ApplicationCommandOption.Type.STRING.getValue())
+                                .required(true)
+                                .build())
+                        .build();
 
-            if (webhook == null) {
-                RccDiscord.LOGGER.error("Attempt to create a webhook failed! Please create a WebHook by the name {} and restart the server", webhookName);
-                client.shutdown();
-                return;
-            }
-            webhookClient = new WebhookClientBuilder(webhook.getUrl())
-                    .setDaemon(true)
-                    .buildJDA();
+                var listCommand = ApplicationCommandRequest.builder()
+                        .name("list")
+                        .description("Get online players.")
+                        .build();
 
-            guild.updateCommands().addCommands(
-                    Commands.slash("link", "Link your Minecraft profile with Discord.")
-                            .addOption(OptionType.STRING, "code", "Linking code"),
-                    Commands.slash("list", "Get online players.")
-            ).queue();
+                GuildCommandRegistrar.create(client.getRestClient(), List.of(linkCommand, listCommand))
+                        .registerCommands(guild.getId())
+                        .doOnError(e -> RccDiscord.LOGGER.error("Error registering guild commands", e))
+                        .onErrorResume(e -> Mono.empty())
+                        .blockLast();
 
-            isReady = true;
-        }
+                isReady = true;
+            });
 
-        @Override
-        public void onMessageReceived(@NotNull MessageReceivedEvent event) {
-            events.onMessageCreate(event);
-        }
+            client.on(MessageCreateEvent.class).subscribe(events::onMessageCreate);
+            client.on(MessageUpdateEvent.class).subscribe(events::onMessageEdit);
+            client.on(ChatInputInteractionEvent.class).subscribe(events::onChatInputInteraction);
 
-        @Override
-        public void onMessageUpdate(@NotNull MessageUpdateEvent event) {
-            events.onMessageEdit(event);
-        }
-
-        @Override
-        public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
-            if(RccDiscord.CONFIG.enableSlashCommands)
-                events.onSlashCommandInteraction(event);
-        }
+            return Mono.empty();
+        }).block();
     }
 }
