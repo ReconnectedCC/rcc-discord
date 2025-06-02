@@ -5,6 +5,7 @@ import cc.reconnected.discordbridge.RccDiscord;
 import cc.reconnected.discordbridge.events.DiscordMessageEvents;
 import cc.reconnected.discordbridge.ChatComponents;
 import cc.reconnected.discordbridge.parser.MentionNodeParser;
+import cc.reconnected.library.RccLibrary;
 import cc.reconnected.library.data.PlayerMeta;
 import cc.reconnected.library.text.parser.MarkdownParser;
 import eu.pb4.placeholders.api.parsers.NodeParser;
@@ -17,6 +18,8 @@ import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.json.JSONComponentSerializer;
+import net.luckperms.api.node.Node;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 
 import java.nio.charset.StandardCharsets;
@@ -182,16 +185,27 @@ public class Events {
             return;
         }
 
-        var player = RccDiscord.linkCodes.get(code);
+        var playerUuid = RccDiscord.linkCodes.get(code);
+        var playerOpt = RccDiscord.getInstance().getPlayer(playerUuid);
+        if (playerOpt.isEmpty()) {
+            event.reply("You must be online to link your Discord profile!")
+                    .setEphemeral(true).queue();
+            return;
+        }
+
+        var player = playerOpt.get();
+
         var playerData = PlayerMeta.getPlayer(player);
 
-        RccDiscord.discordLinks.put(event.getUser().getId(), player.getUuid());
+        RccDiscord.discordLinks.put(event.getUser().getId(), playerUuid);
         playerData.set(PlayerMeta.KEYS.discordId, event.getUser().getId()).join();
 
         RccDiscord.getInstance().saveData();
 
         var client = RccDiscord.getInstance().getClient();
         var member = event.getMember();
+
+        // Add the role
         if (client.role() != null) {
             try {
                 client.guild().addRoleToMember(member, client.role()).reason("Linked via link code").queue();
@@ -200,17 +214,23 @@ public class Events {
             }
         }
 
+        // Modify the username
         try {
-            member.modifyNickname(playerData.getUsername()).reason("Linked via link code");
+            member.modifyNickname(playerData.getUsername()).reason("Linked via link code").queue();
         } catch(Exception e) {
             RccDiscord.LOGGER.error("Could not modify nickname", e);
         }
+
+        // Give the permission node to the MC player
+        var luckperms = RccLibrary.getInstance().luckPerms();
+        luckperms.getUserManager().modifyUser(playerUuid, user -> {
+            user.data().add(Node.builder(RccDiscord.CONFIG.linkedPermissionNode).build());
+        });
 
         RccDiscord.linkCodes.remove(code);
 
         event.reply("Your Discord profile is now linked with **" + playerData.getUsername() + "**!")
                 .setEphemeral(true).queue();
-
 
         var text = Component.empty()
                 .append(Component.text("You linked your profile to "))

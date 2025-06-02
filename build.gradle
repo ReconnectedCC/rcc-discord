@@ -50,6 +50,7 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     modImplementation "cc.reconnected:rcc-library:${project.rcclibrary_version}"
+    compileOnly "net.luckperms:api:${project.luckpermsapi_version}"
 
     include implementation("net.dv8tion:JDA:${project.jda_version}") {
         exclude module: 'opus-java'

@@ -1,6 +1,7 @@
 package cc.reconnected.discordbridge.commands;
 
 import cc.reconnected.discordbridge.RccDiscord;
+import cc.reconnected.library.RccLibrary;
 import cc.reconnected.library.data.PlayerMeta;
 import com.mojang.brigadier.CommandDispatcher;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
@@ -9,6 +10,7 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.luckperms.api.node.Node;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -49,7 +51,7 @@ public class DiscordCommand {
                             }
 
                             var code = generateLinkCode();
-                            RccDiscord.linkCodes.put(code, player);
+                            RccDiscord.linkCodes.put(code, player.getUuid());
 
                             var text = Component.empty()
                                     .append(Component.text("Your profile is ready to be linked!"))
@@ -92,6 +94,12 @@ public class DiscordCommand {
                                     RccDiscord.LOGGER.error("Could not remove role from player", e);
                                 }
                             }
+
+                            // Remove the permission node to the MC player
+                            var luckperms = RccLibrary.getInstance().luckPerms();
+                            luckperms.getUserManager().modifyUser(player.getUuid(), user -> {
+                                user.data().remove(Node.builder(RccDiscord.CONFIG.linkedPermissionNode).build());
+                            });
 
                             RccDiscord.discordLinks.remove(snowflake);
                             playerData.delete(PlayerMeta.KEYS.discordId).join();

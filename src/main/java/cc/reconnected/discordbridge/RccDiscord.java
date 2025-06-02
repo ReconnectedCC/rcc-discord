@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -60,7 +61,7 @@ public class RccDiscord implements ModInitializer {
         return client;
     }
 
-    public static final HashMap<String, ServerPlayerEntity> linkCodes = new HashMap<>();
+    public static final HashMap<String, UUID> linkCodes = new HashMap<>();
 
     /**
      * Discord snowflake ID -> Player UUID
@@ -215,5 +216,10 @@ public class RccDiscord implements ModInitializer {
 
     public String[] getPlayerNames() {
         return mcServer.getPlayerManager().getPlayerNames();
+    }
+
+    public Optional<ServerPlayerEntity> getPlayer(UUID uuid) {
+        var player = mcServer.getPlayerManager().getPlayer(uuid);
+        return Optional.ofNullable(player);
     }
 }

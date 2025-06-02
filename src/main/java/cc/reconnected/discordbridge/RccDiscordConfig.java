@@ -22,4 +22,5 @@ public class RccDiscordConfig {
 
     public boolean usePresence = true;
     public boolean enableSlashCommands = true;
+    public String linkedPermissionNode = "rcc.chatbox.linked";
 }
