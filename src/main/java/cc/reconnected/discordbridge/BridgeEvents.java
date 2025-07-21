@@ -101,7 +101,7 @@ public class BridgeEvents {
             return;
 
         var text = "with " + count + " players!";
-        if (count == 0) {
+        if (count <= 0) {
             text = "with no one :(";
         }
         RccDiscord.getInstance().setStatus(OnlineStatus.ONLINE, Activity.playing(text));

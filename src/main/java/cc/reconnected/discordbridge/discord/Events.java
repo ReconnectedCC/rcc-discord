@@ -11,6 +11,7 @@ import cc.reconnected.library.text.parser.MarkdownParser;
 import eu.pb4.placeholders.api.parsers.NodeParser;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageReference;
 import net.dv8tion.jda.api.entities.MessageType;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -107,7 +108,7 @@ public class Events {
         var memberComponent = ChatComponents.makeUser(member.getEffectiveName(), member.getAsMention() + ": ", memberColor, Component.empty());
         Component replyComponent = null;
 
-        if (message.getType() == MessageType.INLINE_REPLY && message.getReferencedMessage() != null) {
+        if ((message.getType() == MessageType.INLINE_REPLY) && message.getReferencedMessage() != null) {
             var referencedMessage = message.getReferencedMessage();
             Component referenceMemberComponent;
             var referenceMember = referencedMessage.getMember();
@@ -128,6 +129,10 @@ public class Events {
             }
 
             replyComponent = ChatComponents.makeReplyHeader(referenceMemberComponent, Component.text(referencedMessage.getContentDisplay()));
+        }
+        Component forwardComponent = null;
+        if (message.getMessageReference() != null && message.getMessageReference().getType() == MessageReference.MessageReferenceType.FORWARD && !message.getMessageSnapshots().isEmpty()) {
+            forwardComponent = ChatComponents.makeForwardHeader(Component.text(message.getMessageSnapshots().getFirst().getContentRaw()));
         }
 
         var messageContent = message.getContentRaw();
@@ -150,7 +155,7 @@ public class Events {
             messageComponent = messageComponent.appendSpace();
         }
 
-        var outputComponent = ChatComponents.makeMessage(memberComponent, replyComponent, messageComponent);
+        var outputComponent = ChatComponents.makeMessage(memberComponent, replyComponent, forwardComponent, messageComponent);
 
         if (isEdited) {
             outputComponent = outputComponent.append(Component.text("(edited)", NamedTextColor.GRAY));
@@ -203,11 +208,16 @@ public class Events {
 
         var client = RccDiscord.getInstance().getClient();
         var member = event.getMember();
-
+        if (member == null) {
+            event.reply("You must run this command in a server channel to link your profile!")
+                    .setEphemeral(true).queue();
+            return;
+        }
+        var clientRole = client.role();
         // Add the role
-        if (client.role() != null) {
+        if (clientRole != null) {
             try {
-                client.guild().addRoleToMember(member, client.role()).reason("Linked via link code").queue();
+                client.guild().addRoleToMember(member, clientRole).reason("Linked via link code").queue();
             } catch (Exception e) {
                 RccDiscord.LOGGER.error("Could not add role to player", e);
             }
@@ -222,9 +232,7 @@ public class Events {
 
         // Give the permission node to the MC player
         var luckperms = RccLibrary.getInstance().luckPerms();
-        luckperms.getUserManager().modifyUser(playerUuid, user -> {
-            user.data().add(Node.builder(RccDiscord.CONFIG.linkedPermissionNode).build());
-        });
+        luckperms.getUserManager().modifyUser(playerUuid, user -> user.data().add(Node.builder(RccDiscord.CONFIG.linkedPermissionNode).build()));
 
         RccDiscord.linkCodes.remove(code);
 

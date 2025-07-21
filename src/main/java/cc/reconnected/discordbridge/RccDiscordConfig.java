@@ -17,6 +17,7 @@ public class RccDiscordConfig {
 
     public String prefix = "<#5865F2><hover:show_text:'This is a message from the Discord server'><click:open_url:'https://discord.gg/myserver'>D<reset>";
     public String reply = " <reference_username> <hover:show_text:'Message: <reference_message>'><gray>↵</gray>";
+    public String forward = "<hover:show_text:'Message: <reference_message>'><gray>↪</gray>";
 
     public String messageFormat = "<prefix> <username><gray>:</gray><reply> <message>";
 

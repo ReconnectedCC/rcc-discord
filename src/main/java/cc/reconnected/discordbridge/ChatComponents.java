@@ -43,13 +43,18 @@ public class ChatComponents {
         );
     }
 
-    public static Component makeMessage(Component username, @Nullable Component reply, Component message) {
-        if (reply == null)
-            reply = Component.empty();
+    public static Component makeForwardHeader(Component forward) {
+        return MiniMessage.miniMessage().deserialize(RccDiscord.CONFIG.forward,
+                Placeholder.component("reference_message", forward)
+        );
+    }
+
+    public static Component makeMessage(Component username, @Nullable Component reply, @Nullable Component forward, Component message) {
         return MiniMessage.miniMessage().deserialize(RccDiscord.CONFIG.messageFormat,
                 Placeholder.component("prefix", discordMessagePrefix),
                 Placeholder.component("username", username),
-                Placeholder.component("reply", reply),
+                Placeholder.component("reply", reply != null ? reply : Component.empty()),
+                Placeholder.component("forward", forward != null ? forward : Component.empty()),
                 Placeholder.component("message", message)
         );
         //return Component.empty();
