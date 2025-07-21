@@ -132,7 +132,7 @@ public class Events {
         }
         Component forwardComponent = null;
         if (message.getMessageReference() != null && message.getMessageReference().getType() == MessageReference.MessageReferenceType.FORWARD && !message.getMessageSnapshots().isEmpty()) {
-            forwardComponent = ChatComponents.makeForwardHeader(Component.text(message.getMessageSnapshots().getFirst().getContentRaw()));
+            forwardComponent = ChatComponents.makeForwardHeader(Component.text(message.getMessageSnapshots().get(0).getContentRaw()));
         }
 
         var messageContent = message.getContentRaw();
