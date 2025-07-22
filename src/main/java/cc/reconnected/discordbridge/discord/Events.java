@@ -8,6 +8,8 @@ import cc.reconnected.discordbridge.parser.MentionNodeParser;
 import cc.reconnected.library.RccLibrary;
 import cc.reconnected.library.data.PlayerMeta;
 import cc.reconnected.library.text.parser.MarkdownParser;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import eu.pb4.placeholders.api.parsers.NodeParser;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -25,10 +27,10 @@ import net.minecraft.text.Text;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
+import java.util.Objects;
 
 public class Events {
-    private final HashMap<String, String> messageCache = new HashMap<>();
+    private final Cache<String, String> messageCache = Caffeine.newBuilder().maximumSize(5000).build();
 
     private boolean isActuallyEdited(String id, String content) {
         MessageDigest messageDigest;
@@ -41,13 +43,8 @@ public class Events {
 
         var digest = new String(messageDigest.digest(content.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
 
-        if (!messageCache.containsKey(id)) {
+        if (!Objects.equals(messageCache.get(id, (k) -> digest), digest)) {
             messageCache.put(id, digest);
-            return false;
-        }
-
-        if (!messageCache.get(id).equals(content)) {
-            messageCache.put(id, content);
             return true;
         }
 
